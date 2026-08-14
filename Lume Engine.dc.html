@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="" />
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; background: #0d0d0f; }
+  a { color: #7eaaff; text-decoration: none; }
+  a:hover { color: #a9c6ff; }
+  ::selection { background: rgba(126,170,255,0.28); }
+  @keyframes lume-spring {
+    0% { transform: translateX(0); }
+    46% { transform: translateX(214px); }
+    62% { transform: translateX(196px); }
+    74% { transform: translateX(206px); }
+    86% { transform: translateX(202px); }
+    100% { transform: translateX(204px); }
+  }
+  @keyframes lume-tween {
+    0% { transform: translateX(0); }
+    100% { transform: translateX(204px); }
+  }
+</style>
+</helmet>
+
+<div style="--accent: var(--lume-accent, #7eaaff); background: #0d0d0f; color: #eeeef2; font-family: 'IBM Plex Sans', system-ui, sans-serif; min-height: 100vh; padding: 72px 0 96px;">
+
+  <div style="max-width: 1080px; margin: 0 auto; padding: 0 40px; display: flex; flex-direction: column; gap: 64px;">
+
+    <header style="display: flex; flex-direction: column; gap: 20px;">
+      <div style="display: flex; align-items: center; gap: 12px; font-family: 'IBM Plex Mono', monospace; font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; color: #9292a0;">
+        <span style="width: 8px; height: 8px; border-radius: 999px; background: var(--accent);"></span>
+        <span>Roblox Luau · MIT · v1.0.0</span>
+      </div>
+      <h1 style="margin: 0; font-size: 64px; font-weight: 600; letter-spacing: -0.03em; line-height: 1;">Lume</h1>
+      <p style="margin: 0; max-width: 640px; font-size: 19px; line-height: 1.6; color: #b9b9c4; text-wrap: pretty;">A UI engine for Roblox. Declarative trees, imperative handles, one motion driver, content-driven layout. Everything that made the console feel smooth, with the console taken out.</p>
+      <p style="margin: 0; max-width: 640px; font-size: 14px; line-height: 1.6; color: #71717e;">Derived from the console UI by driftingAurora, dullflowerr, alias and kioukaii (MIT). Their motion, measurement and virtualisation ideas are the core of this library.</p>
+    </header>
+
+    <section style="display: flex; flex-direction: column; gap: 16px;">
+      <h2 style="margin: 0; font-size: 13px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: #71717e;">Quickstart</h2>
+      <pre style="margin: 0; background: #17171a; border: 1px solid #26262c; border-radius: 12px; padding: 24px 28px; overflow-x: auto; font-family: 'IBM Plex Mono', monospace; font-size: 13.5px; line-height: 1.75; color: #d5d5de;"><span style="color: #71717e;">--// one app owns the gui, theme, scope, measurement and input
+</span><span style="color: #c99cff;">local</span> Lume = <span style="color: #c99cff;">require</span>(ReplicatedStorage.lume)
+<span style="color: #c99cff;">local</span> app = Lume.app({ name = <span style="color: #89ff7e;">"Inspector"</span> })
+
+<span style="color: #71717e;">--// declarative in, handle out
+</span><span style="color: #c99cff;">local</span> window = app:window({ title = <span style="color: #89ff7e;">"Inspector"</span>, width = <span style="color: #ffd67e;">320</span> })
+<span style="color: #c99cff;">local</span> search = app:field({ parent = window.content, placeholder = <span style="color: #89ff7e;">"Search"</span>, <span style="color: #d5d5de;">autoWidth</span> = <span style="color: #ffd67e;">true</span> })
+<span style="color: #c99cff;">local</span> rows   = app:list({ parent = window.content, mode = <span style="color: #89ff7e;">"text"</span>, <span style="color: #d5d5de;">maxHeight</span> = <span style="color: #ffd67e;">280</span> })
+
+<span style="color: #71717e;">--// imperative from here: animate, resize, subscribe, dispose
+</span>search:on(<span style="color: #89ff7e;">"submitted"</span>, <span style="color: #c99cff;">function</span>(text)
+	rows:append(text)
+	window:resize(rows:<span style="color: #d5d5de;">contentHeight</span>())
+<span style="color: #c99cff;">end</span>)
+
+window:open()</pre>
+    </section>
+
+    <section style="display: flex; flex-direction: column; gap: 20px;">
+      <h2 style="margin: 0; font-size: 13px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: #71717e;">Module map</h2>
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(232px, 1fr)); gap: 12px;">
+
+        <div style="background: #141417; border: 1px solid #26262c; border-radius: 12px; padding: 20px 22px; display: flex; flex-direction: column; gap: 12px;">
+          <div style="font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: var(--accent);">core/</div>
+          <div style="display: flex; flex-direction: column; gap: 8px; font-size: 13.5px; line-height: 1.5; color: #9292a0;">
+            <div><span style="color: #eeeef2; font-family: 'IBM Plex Mono', monospace;">state</span> — value, computed, observe, batch. Explicit deps, no global tracking.</div>
+            <div><span style="color: #eeeef2; font-family: 'IBM Plex Mono', monospace;">scope</span> — ownership; unwinds instances, connections and animations in reverse.</div>
+            <div><span style="color: #eeeef2; font-family: 'IBM Plex Mono', monospace;">create</span> — descriptor tables to instances, with named refs.</div>
+            <div><span style="color: #eeeef2; font-family: 'IBM Plex Mono', monospace;">handle</span> — the imperative half every component returns.</div>
+          </div>
+        </div>
+
+        <div style="background: #141417; border: 1px solid #26262c; border-radius: 12px; padding: 20px 22px; display: flex; flex-direction: column; gap: 12px;">
+          <div style="font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: var(--accent);">motion/</div>
+          <div style="display: flex; flex-direction: column; gap: 8px; font-size: 13.5px; line-height: 1.5; color: #9292a0;">
+            <div><span style="color: #eeeef2; font-family: 'IBM Plex Mono', monospace;">init</span> — one Heartbeat driver; tracks keyed instance + property.</div>
+            <div><span style="color: #eeeef2; font-family: 'IBM Plex Mono', monospace;">spring</span> — substepped semi-implicit solver, velocity inherited on retarget.</div>
+            <div><span style="color: #eeeef2; font-family: 'IBM Plex Mono', monospace;">easing</span> · <span style="color: #eeeef2; font-family: 'IBM Plex Mono', monospace;">lerp</span> — curves and type-aware interpolation.</div>
+          </div>
+        </div>
+
+        <div style="background: #141417; border: 1px solid #26262c; border-radius: 12px; padding: 20px 22px; display: flex; flex-direction: column; gap: 12px;">
+          <div style="font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: var(--accent);">layout/</div>
+          <div style="display: flex; flex-direction: column; gap: 8px; font-size: 13.5px; line-height: 1.5; color: #9292a0;">
+            <div><span style="color: #eeeef2; font-family: 'IBM Plex Mono', monospace;">measure</span> — cached text metrics; line height, space gap, exact width.</div>
+            <div><span style="color: #eeeef2; font-family: 'IBM Plex Mono', monospace;">autosize</span> — content width, viewport clamp, available room.</div>
+            <div><span style="color: #eeeef2; font-family: 'IBM Plex Mono', monospace;">placement</span> — stack, attach, flip, clamp, center.</div>
+            <div><span style="color: #eeeef2; font-family: 'IBM Plex Mono', monospace;">virtual</span> — windowing math and stable chunk keys.</div>
+          </div>
+        </div>
+
+        <div style="background: #141417; border: 1px solid #26262c; border-radius: 12px; padding: 20px 22px; display: flex; flex-direction: column; gap: 12px;">
+          <div style="font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: var(--accent);">input/ · theme/</div>
+          <div style="display: flex; flex-direction: column; gap: 8px; font-size: 13.5px; line-height: 1.5; color: #9292a0;">
+            <div><span style="color: #eeeef2; font-family: 'IBM Plex Mono', monospace;">drag</span> — handle regions, excludes, axis lock, viewport clamping.</div>
+            <div><span style="color: #eeeef2; font-family: 'IBM Plex Mono', monospace;">focus</span> — one ring per app; click-outside resolved against regions.</div>
+            <div><span style="color: #eeeef2; font-family: 'IBM Plex Mono', monospace;">keys</span> — named bindings with the typing guard.</div>
+            <div><span style="color: #eeeef2; font-family: 'IBM Plex Mono', monospace;">theme</span> — colour, type, space, radius, motion tokens; <span style="font-family: 'IBM Plex Mono', monospace;">:extend()</span>.</div>
+          </div>
+        </div>
+
+      </div>
+      <p style="margin: 0; font-size: 13px; color: #71717e;">Dependencies run strictly downward: components → systems → core. Nothing in core knows a component exists.</p>
+    </section>
+
+    <sc-if value="{{ showMotionLab }}" hint-placeholder-val="{{ true }}">
+      <section style="display: flex; flex-direction: column; gap: 20px;">
+        <h2 style="margin: 0; font-size: 13px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: #71717e;">Why springs by default</h2>
+        <div style="background: #141417; border: 1px solid #26262c; border-radius: 12px; padding: 28px; display: flex; flex-direction: column; gap: 24px;">
+          <div style="display: flex; flex-direction: column; gap: 10px;">
+            <div style="display: flex; justify-content: space-between; font-family: 'IBM Plex Mono', monospace; font-size: 11.5px; color: #71717e;">
+              <span>theme.motion.layout — spring, stiffness 190 / damping 24</span>
+              <span>retargetable</span>
+            </div>
+            <div style="height: 28px; border-radius: 999px; background: #0d0d0f; border: 1px solid #26262c; padding: 6px; width: 248px;">
+              <div style="width: 14px; height: 14px; border-radius: 999px; background: var(--accent); animation: lume-spring 2.4s cubic-bezier(0.2,0,0.2,1) infinite alternate;"></div>
+            </div>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 10px;">
+            <div style="display: flex; justify-content: space-between; font-family: 'IBM Plex Mono', monospace; font-size: 11.5px; color: #71717e;">
+              <span>theme.motion.enter — tween, 0.22s outQuint</span>
+              <span>one-shot</span>
+            </div>
+            <div style="height: 28px; border-radius: 999px; background: #0d0d0f; border: 1px solid #26262c; padding: 6px; width: 248px;">
+              <div style="width: 14px; height: 14px; border-radius: 999px; background: #9292a0; animation: lume-tween 2.4s cubic-bezier(0.22,1,0.36,1) infinite alternate;"></div>
+            </div>
+          </div>
+          <p style="margin: 0; max-width: 620px; font-size: 14px; line-height: 1.65; color: #9292a0; text-wrap: pretty;">Tracks are keyed by instance + property. Retargeting a property replaces only that property's track and hands its velocity to the successor, so a width that changes while it is already moving never restarts from a standstill. Tweens stay for one-shot fades; springs handle anything whose target can change mid-flight — layout, drag release, reveal.</p>
+        </div>
+      </section>
+    </sc-if>
+
+    <section style="display: flex; flex-direction: column; gap: 20px;">
+      <h2 style="margin: 0; font-size: 13px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: #71717e;">Components</h2>
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(196px, 1fr)); gap: 10px;">
+        <div style="background: #141417; border: 1px solid #26262c; border-radius: 10px; padding: 16px 18px; display: flex; flex-direction: column; gap: 6px;"><div style="font-family: 'IBM Plex Mono', monospace; font-size: 13px; color: #eeeef2;">app:window</div><div style="font-size: 13px; line-height: 1.5; color: #9292a0;">Draggable content-sized surface. <span style="font-family: 'IBM Plex Mono', monospace;">:resize()</span> keeps the top edge anchored while it grows.</div></div>
+        <div style="background: #141417; border: 1px solid #26262c; border-radius: 10px; padding: 16px 18px; display: flex; flex-direction: column; gap: 6px;"><div style="font-family: 'IBM Plex Mono', monospace; font-size: 13px; color: #eeeef2;">app:field</div><div style="font-size: 13px; line-height: 1.5; color: #9292a0;">Text input with placeholder crossfade, sanitiser, and measured auto-width.</div></div>
+        <div style="background: #141417; border: 1px solid #26262c; border-radius: 10px; padding: 16px 18px; display: flex; flex-direction: column; gap: 6px;"><div style="font-family: 'IBM Plex Mono', monospace; font-size: 13px; color: #eeeef2;">app:suggest</div><div style="font-size: 13px; line-height: 1.5; color: #9292a0;">Autocomplete popover. Prefix-first ranking, spring height, edge flipping.</div></div>
+        <div style="background: #141417; border: 1px solid #26262c; border-radius: 10px; padding: 16px 18px; display: flex; flex-direction: column; gap: 6px;"><div style="font-family: 'IBM Plex Mono', monospace; font-size: 13px; color: #eeeef2;">app:chips</div><div style="font-size: 13px; line-height: 1.5; color: #9292a0;">Schema-driven <span style="font-family: 'IBM Plex Mono', monospace;">name: value</span> cells that behave as one field. Arrow/Tab traversal.</div></div>
+        <div style="background: #141417; border: 1px solid #26262c; border-radius: 10px; padding: 16px 18px; display: flex; flex-direction: column; gap: 6px;"><div style="font-family: 'IBM Plex Mono', monospace; font-size: 13px; color: #eeeef2;">app:list</div><div style="font-size: 13px; line-height: 1.5; color: #9292a0;">Virtualised scroller. <span style="font-family: 'IBM Plex Mono', monospace;">text</span> mode chunks lines into few labels; <span style="font-family: 'IBM Plex Mono', monospace;">rows</span> mode builds per item.</div></div>
+        <div style="background: #141417; border: 1px solid #26262c; border-radius: 10px; padding: 16px 18px; display: flex; flex-direction: column; gap: 6px;"><div style="font-family: 'IBM Plex Mono', monospace; font-size: 13px; color: #eeeef2;">app:select</div><div style="font-size: 13px; line-height: 1.5; color: #9292a0;">Dropdown on the popover layer — never clipped by its parent surface.</div></div>
+        <div style="background: #141417; border: 1px solid #26262c; border-radius: 10px; padding: 16px 18px; display: flex; flex-direction: column; gap: 6px;"><div style="font-family: 'IBM Plex Mono', monospace; font-size: 13px; color: #eeeef2;">app:tabs</div><div style="font-size: 13px; line-height: 1.5; color: #9292a0;">Tab strip with a spring indicator that travels across buttons.</div></div>
+        <div style="background: #141417; border: 1px solid #26262c; border-radius: 10px; padding: 16px 18px; display: flex; flex-direction: column; gap: 6px;"><div style="font-family: 'IBM Plex Mono', monospace; font-size: 13px; color: #eeeef2;">app:modal</div><div style="font-size: 13px; line-height: 1.5; color: #9292a0;">Scrim + lifted card, Escape to dismiss, input swallowed underneath.</div></div>
+        <div style="background: #141417; border: 1px solid #26262c; border-radius: 10px; padding: 16px 18px; display: flex; flex-direction: column; gap: 6px;"><div style="font-family: 'IBM Plex Mono', monospace; font-size: 13px; color: #eeeef2;">app:tooltip</div><div style="font-size: 13px; line-height: 1.5; color: #9292a0;">Hover popover sized from measured text, flipped off viewport edges.</div></div>
+        <div style="background: #141417; border: 1px solid #26262c; border-radius: 10px; padding: 16px 18px; display: flex; flex-direction: column; gap: 6px;"><div style="font-family: 'IBM Plex Mono', monospace; font-size: 13px; color: #eeeef2;">app:button</div><div style="font-size: 13px; line-height: 1.5; color: #9292a0;">solid · ghost · outline · accent, with hover and press motion.</div></div>
+        <div style="background: #141417; border: 1px solid #26262c; border-radius: 10px; padding: 16px 18px; display: flex; flex-direction: column; gap: 6px;"><div style="font-family: 'IBM Plex Mono', monospace; font-size: 13px; color: #eeeef2;">app:toggle</div><div style="font-size: 13px; line-height: 1.5; color: #9292a0;">Spring knob bound to a <span style="font-family: 'IBM Plex Mono', monospace;">Lume.value</span> you can share.</div></div>
+        <div style="background: #141417; border: 1px solid #26262c; border-radius: 10px; padding: 16px 18px; display: flex; flex-direction: column; gap: 6px;"><div style="font-family: 'IBM Plex Mono', monospace; font-size: 13px; color: #eeeef2;">app:slider</div><div style="font-size: 13px; line-height: 1.5; color: #9292a0;">Drag anywhere on the track; steps quantise, fill follows a spring.</div></div>
+      </div>
+    </section>
+
+    <section style="display: flex; flex-direction: column; gap: 20px;">
+      <h2 style="margin: 0; font-size: 13px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: #71717e;">Handles and scopes</h2>
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+        <pre style="margin: 0; background: #17171a; border: 1px solid #26262c; border-radius: 12px; padding: 22px 24px; overflow-x: auto; font-family: 'IBM Plex Mono', monospace; font-size: 13px; line-height: 1.7; color: #d5d5de;"><span style="color: #71717e;">--// every component returns the same shape
+</span>handle:instance()
+handle:mount(parent)
+handle:animate({ Size = ... }, <span style="color: #89ff7e;">"layout"</span>)
+handle:on(<span style="color: #89ff7e;">"changed"</span>, print)
+handle:destroy()
+
+<span style="color: #71717e;">--// plus its own state and methods
+</span>handle.value:set(<span style="color: #ffd67e;">0.5</span>)
+window:resize(rows:<span style="color: #d5d5de;">contentHeight</span>())</pre>
+        <pre style="margin: 0; background: #17171a; border: 1px solid #26262c; border-radius: 12px; padding: 22px 24px; overflow-x: auto; font-family: 'IBM Plex Mono', monospace; font-size: 13px; line-height: 1.7; color: #d5d5de;"><span style="color: #71717e;">--// scopes own everything, in reverse order
+</span><span style="color: #c99cff;">local</span> scope = Lume.scope()
+
+scope:add(connection)
+scope:add(instance)
+scope:add(<span style="color: #c99cff;">function</span>() ... <span style="color: #c99cff;">end</span>)
+
+<span style="color: #71717e;">--// one call disposes the subtree, its
+--// connections and its animations
+</span>scope:destroy()</pre>
+      </div>
+    </section>
+
+    <sc-if value="{{ showMigration }}" hint-placeholder-val="{{ true }}">
+      <section style="display: flex; flex-direction: column; gap: 20px;">
+        <h2 style="margin: 0; font-size: 13px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: #71717e;">Where the console went</h2>
+        <div style="border: 1px solid #26262c; border-radius: 12px; overflow: hidden;">
+          <div style="display: grid; grid-template-columns: 1fr 1.4fr; gap: 0; background: #17171a; padding: 12px 22px; font-family: 'IBM Plex Mono', monospace; font-size: 11.5px; letter-spacing: 0.08em; text-transform: uppercase; color: #71717e;"><div>was</div><div>is</div></div>
+          <div style="display: grid; grid-template-columns: 1fr 1.4fr; gap: 0; font-size: 13.5px; color: #b9b9c4;">
+            <div style="padding: 13px 22px; border-top: 1px solid #1f1f25; font-family: 'IBM Plex Mono', monospace; color: #9292a0;">render · controller</div><div style="padding: 13px 22px; border-top: 1px solid #1f1f25;">Lume.app() plus app.keys</div>
+            <div style="padding: 13px 22px; border-top: 1px solid #1f1f25; font-family: 'IBM Plex Mono', monospace; color: #9292a0;">session (1374 lines)</div><div style="padding: 13px 22px; border-top: 1px solid #1f1f25;">Window + Field + List + Suggest + Chips</div>
+            <div style="padding: 13px 22px; border-top: 1px solid #1f1f25; font-family: 'IBM Plex Mono', monospace; color: #9292a0;">panel</div><div style="padding: 13px 22px; border-top: 1px solid #1f1f25;">layout/measure · autosize · virtual · List</div>
+            <div style="padding: 13px 22px; border-top: 1px solid #1f1f25; font-family: 'IBM Plex Mono', monospace; color: #9292a0;">hints</div><div style="padding: 13px 22px; border-top: 1px solid #1f1f25;">Chips — schema driven, no command semantics</div>
+            <div style="padding: 13px 22px; border-top: 1px solid #1f1f25; font-family: 'IBM Plex Mono', monospace; color: #9292a0;">history · formatter · result</div><div style="padding: 13px 22px; border-top: 1px solid #1f1f25;">dropped — application concerns, not engine</div>
+            <div style="padding: 13px 22px; border-top: 1px solid #1f1f25; font-family: 'IBM Plex Mono', monospace; color: #9292a0;">misc/view</div><div style="padding: 13px 22px; border-top: 1px solid #1f1f25;">core/create + components/surface</div>
+            <div style="padding: 13px 22px; border-top: 1px solid #1f1f25; font-family: 'IBM Plex Mono', monospace; color: #9292a0;">channel 1 / channel 2</div><div style="padding: 13px 22px; border-top: 1px solid #1f1f25;">any number of independent Window handles</div>
+          </div>
+        </div>
+        <p style="margin: 0; max-width: 660px; font-size: 14px; line-height: 1.65; color: #9292a0; text-wrap: pretty;">Rebuilding a console on top is one Window, one Field, one List in text mode, one Suggest bound to the field and one Chips row. Parsing, formatting and command history stay in your application.</p>
+      </section>
+    </sc-if>
+
+    <footer style="display: flex; justify-content: space-between; align-items: baseline; gap: 24px; padding-top: 32px; border-top: 1px solid #1f1f25; font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: #5c5c68;">
+      <span>lume/ · 30 modules · strict core</span>
+      <span>MIT — original console UI © driftingAurora, dullflowerr, alias, kioukaii</span>
+    </footer>
+
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;showMigration&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Sections&quot;},&quot;showMotionLab&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Sections&quot;}}">
+class Component extends DCLogic {
+  renderVals() {
+    return {
+      showMigration: this.props.showMigration ?? true,
+      showMotionLab: this.props.showMotionLab ?? true,
+    };
+  }
+}
+</script>
+</body>
+</html>
