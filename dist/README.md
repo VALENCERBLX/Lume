@@ -1,18 +1,18 @@
 # dist/
 
-`install.luau` is a single self-contained build of the engine. It carries every
-module's source and creates the instance tree in your place — no Rojo, no
-manual copying.
+`install.luau` is a single self-contained build of the library. It carries every
+module's source and creates the instance tree in your place — no Rojo, no manual
+copying.
 
 ## Install from Studio
 
 Paste one line into the **command bar**:
 
 ```lua
-loadstring(game:GetService("HttpService"):GetAsync("https://RAW_HOST/USER/REPO/main/dist/install.luau"))()
+loadstring(game:GetService("HttpService"):GetAsync("https://raw.githubusercontent.com/VALENCERBLX/Lume/master/dist/install.luau"))()
 ```
 
-Replace the URL with the raw URL of this file in your repo. Requirements:
+Requirements:
 
 * **Game Settings → Security → Allow HTTP Requests** on,
 * run it from the **command bar** or a **plugin** — `ModuleScript.Source` is not
@@ -29,43 +29,54 @@ Set these before running:
 ```lua
 _G.LumeInstall = {
     parent    = game:GetService("ReplicatedStorage"), -- where to build
-    name      = "lume",                               -- root instance name
+    name      = "Lume",                               -- root instance name
     overwrite = true,                                 -- replace an existing install
     select    = true,                                 -- select the root when done
     silent    = false,                                -- suppress output
 }
 
-loadstring(game:GetService("HttpService"):GetAsync("https://RAW_HOST/USER/REPO/main/dist/install.luau"))()
+loadstring(game:GetService("HttpService"):GetAsync("https://raw.githubusercontent.com/VALENCERBLX/Lume/master/dist/install.luau"))()
 ```
 
 ## What you get
 
 ```
 ReplicatedStorage
-└── lume                (ModuleScript)
-    ├── app  types  text
-    ├── core/           signal · scope · state · create · handle
-    ├── theme           (ModuleScript) → tokens
-    ├── motion          (ModuleScript) → easing · spring · lerp
-    ├── layout/         measure · autosize · placement · virtual
-    ├── input/          drag · focus · keys
-    └── components      (ModuleScript) → surface · window · modal · tooltip ·
-                        button · toggle · slider · select · field · chips ·
-                        suggest · tabs · list
+└── Lume                (ModuleScript)
+    ├── Types  Text  App
+    ├── Core/           Scope · Signal · State · Create · Node
+    ├── Theme           (ModuleScript) → Tokens
+    ├── Motion          (ModuleScript) → Easing · Spring
+    ├── Layout/         Measure · Placement · Autosize · Virtual · Stack
+    ├── Input/          Drag · Focus · Hover · Keys
+    ├── Panel           (ModuleScript) → Chrome · Presets
+    └── Elements        (ModuleScript) → Label · Icon · Button · Field ·
+                        Toggle · Slider · Select · List · Divider · Spacer ·
+                        Group · Progress · Tabs · Chips · Suggest · Menu ·
+                        Badge · Scroll · Keybind
 ```
 
 ```lua
-local Lume = require(game:GetService("ReplicatedStorage").lume)
+local Lume = require(game:GetService("ReplicatedStorage").Lume)
 
 local app = Lume.app({ name = "Inspector" })
-local window = app:window({ title = "Inspector", width = 320 })
+
+app:panel("window")
+    :setTitle("Inspector")
+    :setAnchor("bottomRight")
+    :open()
 ```
 
 ## Regenerating
 
-`install.luau` is **generated** from the `lume/` source tree; do not hand-edit
-it. The packer walks `lume/`, rewrites the string requires (`require("./state")`)
-into Roblox instance requires (`require(script.Parent.state)`), and inlines each
-source into the manifest. Edit `lume/`, repack, commit both.
+`install.luau` is **generated** from `src/`; do not hand-edit it. The packer
+walks the tree, turns folders-with-an-`init` into ModuleScripts, and inlines
+each source into the manifest. Edit `src/`, repack, commit both:
+
+```sh
+lune run scripts/build-installer
+```
+
+The build self-checks that the bundle compiles before writing it.
 
 MIT. Original console UI by driftingAurora, dullflowerr, alias, kioukaii.
