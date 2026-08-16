@@ -1,0 +1,12 @@
+[package]
+name = "kr3ative/lume"
+version = "0.1.0"
+description = "A panel-and-element UI standard for Roblox: content-driven layout, one motion driver, chained builders."
+license = "MIT"
+authors = ["kr3ative"]
+registry = "https://github.com/UpliftGames/wally-index"
+realm = "shared"
+
+[dependencies]
+# Lume has no runtime dependencies. It ships its own reactivity, motion driver
+# and measurement cache so a consuming package pulls in exactly one thing.
