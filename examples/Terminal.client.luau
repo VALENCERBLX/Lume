@@ -4,14 +4,14 @@
 ---
 --- This is a 1:1 of the terminal the library was distilled from: a pill at the
 --- bottom of the screen that morphs into a rounded panel as output arrives,
---- monospace green history with red errors, an inline ghost completion after
---- the caret, and a suggestion list that flips above the bar because there is
---- no room below it.
+--- monospace history in white with green results and red errors, an inline
+--- ghost completion after the caret, and a suggestion list that flips above
+--- the bar because there is no room below it.
 ---
---- Every number below is the original's own, taken from the fallbacks in its
---- source (`panel.stackGap or 8`, `motion.outputSmoothTime or 0.24`,
---- `panel.historyMaxHeight or 420`, `panel.viewportTopInset or 24`, …) rather
---- than eyeballed.
+--- Every number below is copied from the original's `config.luau`, not
+--- estimated. Verified against it: a 204×34 pill at radius 17, anchored 24px
+--- off the bottom, growing to 374 tall (`historyMaxHeight` 340 + 34) at
+--- radius 12 with the bottom edge held.
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
@@ -19,22 +19,23 @@ local Lume = require(ReplicatedStorage.Packages.Lume)
 
 --// the console's metrics ------------------------------------------------------
 local CONSOLE = {
-	height = 36, --// panel.height, the pill
-	collapsedWidth = 220, --// panel.collapsedWidth
-	width = 520, --// panel.width
-	maxWidth = 900, --// panel.maxWidth
-	historyMaxHeight = 420, --// panel.historyMaxHeight
+	height = 34, --// panel.height, the pill
+	collapsedWidth = 204, --// panel.collapsedWidth
+	width = 252, --// panel.width
+	outputWidth = 338, --// panel.outputWidth
+	maxWidth = 100000, --// panel.maxWidth (INF)
+	historyMaxHeight = 340, --// panel.historyMaxHeight
 	viewportInset = 24, --// panel.viewportTopInset
 	outputRadius = 12, --// panel.outputRadius
 	suggestionRadius = 10, --// panel.suggestionRadius
 	suggestionGap = 8, --// panel.suggestionGap
 	stackGap = 8, --// panel.stackGap
 	paddingX = 12, --// layout.paddingX
-	paddingY = 6,
+	paddingY = 5, --// layout.paddingY
 	textSize = 14, --// layout.textSize
-	hintTextSize = 13, --// layout.hintTextSize
-	lineHeight = 18, --// panel.historyLineHeight
-	maxSuggestions = 6, --// panel.maxSuggestions
+	promptSize = 13, --// layout.promptSize
+	lineHeight = 14, --// panel.historyLineHeight
+	maxSuggestions = 5, --// panel.maxSuggestions
 }
 
 local COMMANDS = {
@@ -50,17 +51,11 @@ local COMMANDS = {
 	{ id = "commands", text = "commands", description = "" },
 }
 
-local app = Lume.app({ name = "Konsole", displayOrder = 100 })
+local app = Lume.app({ name = "Konsole", displayOrder = 8241 })
 
---// the console's input row is 24 tall, not Lume's default 32, which is what
---// makes the collapsed pill exactly `paddingY * 2 + 24 = 36` and gives it a
---// radius of 18. Restyling the app rather than the element keeps it one line
-local theme = app:restyle({
-	size = {
-		control = CONSOLE.height - CONSOLE.paddingY * 2,
-		row = CONSOLE.height - CONSOLE.paddingY * 2,
-	},
-})
+--// no restyle needed: Lume's defaults are this console's config, so
+--// `size.control` is already the 24px input row that makes a 34px pill
+local theme = app.theme
 
 --// history -------------------------------------------------------------------
 --// each entry carries its own tone; the renderer turns that into the rich
@@ -106,8 +101,8 @@ output:setRenderer(function(item)
 
 	local colour = if tone == "error"
 		then theme.rich.danger
-		elseif tone == "echo" then theme.rich.muted
-		else theme.rich.terminal
+		elseif tone == "echo" then theme.rich.sub
+		else theme.rich.success
 
 	return Lume.Text.color(Lume.Text.escape(item.text or ""), colour)
 end)

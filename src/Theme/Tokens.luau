@@ -3,14 +3,13 @@
 --- The default token set. Components read from here and never from literals,
 --- so one `app:restyle{…}` call restyles the whole tree.
 ---
---- These values are the console look, not an invention. The surfaces are pure
---- black at roughly a third transparency, which is what the original terminal
---- used and what the demo capture measures back to: panel interior reads 12.7
---- over ground at 36.8, so `12.7 / 36.8 ≈ 0.34` against black.
+--- These values are not an invention and no longer an estimate: they are read
+--- straight out of the original console's `config.luau`. Surfaces are pure
+--- black at `0.50` transparency, body text is white, and the greys, motion
+--- durations, radii and sizes below are that file's literals.
 ---
---- Numbers marked *(console)* are lifted from the original UI's own fallbacks
---- (`panel.stackGap or 8`, `motion.outputSmoothTime or 0.24`, and so on), so
---- the defaults match the thing they came from rather than approximating it.
+--- The green is `successText`, not the body colour — a console shows a lot of
+--- green because most of its output succeeded, not because its text is green.
 --- @section Theme
 
 return {
@@ -30,25 +29,25 @@ return {
 		border = Color3.fromRGB(0, 0, 0),
 		borderStrong = Color3.fromRGB(96, 96, 106),
 
-		text = Color3.fromRGB(238, 238, 242),
-		textMuted = Color3.fromRGB(146, 146, 158),
-		textGhost = Color3.fromRGB(96, 96, 106),
+		--// inputText
+		text = Color3.fromRGB(255, 255, 255),
+		--// mutedText
+		textMuted = Color3.fromRGB(159, 159, 159),
+		--// hintGhost
+		textGhost = Color3.fromRGB(110, 110, 110),
 		textInverse = Color3.fromRGB(12, 12, 14),
+		--// promptText
+		prompt = Color3.fromRGB(210, 210, 210),
 
-		--// the terminal green: measured off the demo at hue 142°, un-blended
-		--// from the near-black panel behind it
-		terminal = Color3.fromRGB(102, 209, 140),
+		--// the console carries no brand colour of its own; this is a neutral
+		--// accent for the controls Lume has and a console does not
+		accent = Color3.fromRGB(126, 170, 255),
+		accentMuted = Color3.fromRGB(74, 102, 156),
+		accentText = Color3.fromRGB(12, 14, 20),
 
-		accent = Color3.fromRGB(102, 209, 140),
-		accentMuted = Color3.fromRGB(64, 130, 88),
-		accentText = Color3.fromRGB(8, 14, 10),
-
-		--// v0's blue, kept for anyone who wants the non-terminal accent back:
-		--// `app:restyle({ color = { accent = theme.color.info } })`
-		info = Color3.fromRGB(126, 170, 255),
-
+		--// successText / warnText / errorText, exactly
 		success = Color3.fromRGB(137, 255, 126),
-		warn = Color3.fromRGB(255, 214, 126),
+		warn = Color3.fromRGB(255, 211, 106),
 		danger = Color3.fromRGB(255, 126, 126),
 
 		track = Color3.fromRGB(255, 255, 255),
@@ -60,32 +59,37 @@ return {
 		text = "#EEEEF2",
 		muted = "#9292A0",
 		ghost = "#60606A",
-		terminal = "#66D18C",
-		accent = "#66D18C",
+		accent = "#7EAAFF",
+		--// successRich / warnRich / errorRich / suggSub / suggMatch
 		success = "#89FF7E",
-		warn = "#FFD67E",
+		warn = "#FFD36A",
 		danger = "#FF7E7E",
+		sub = "#CFCFCF",
+		match = "#FFFFFF",
 	},
 
 	transparency = {
-		--// the console's own values: surfaces at a third, borders faint,
-		--// body text solid
-		surface = 0.3,
-		surfaceRaised = 0.3,
+		--// transparency.panel — half, which is a lot more glass than it sounds
+		surface = 0.5,
+		--// transparency.suggPanel
+		surfaceRaised = 0.42,
 		overlay = 0.45,
 		border = 0.35,
 		text = 0,
 		muted = 0.5,
 		ghost = 0.6,
+		--// transparency.dimText / transparency.arrow
+		dim = 0.18,
+		arrow = 0.35,
 		track = 0.88,
-		shadow = 0.55,
+		shadow = 0.8,
 		disabled = 0.6,
 	},
 
 	font = {
-		body = Enum.Font.Gotham,
-		medium = Enum.Font.GothamMedium,
-		bold = Enum.Font.GothamBold,
+		body = Enum.Font.BuilderSans,
+		medium = Enum.Font.BuilderSans,
+		bold = Enum.Font.BuilderSansBold,
 		mono = Enum.Font.Code,
 	},
 
@@ -100,12 +104,14 @@ return {
 
 	space = {
 		none = 0,
-		xs = 4,
-		sm = 8,
-		--// (console) layout.paddingX
+		--// layout.paddingY
+		xs = 5,
+		--// layout.itemGap
+		sm = 6,
+		--// layout.paddingX
 		md = 12,
 		lg = 16,
-		--// (console) viewportTopInset — how close a panel comes to the edge
+		--// viewportTopInset — how close a panel comes to the screen edge
 		xl = 24,
 		xxl = 32,
 	},
@@ -113,9 +119,9 @@ return {
 	radius = {
 		xs = 4,
 		sm = 6,
-		--// (console) suggestionRadius
+		--// suggestionRadius
 		md = 10,
-		--// (console) outputRadius — what the pill morphs into
+		--// outputRadius — what the pill morphs into
 		lg = 12,
 		xl = 20,
 		pill = 999,
@@ -127,13 +133,18 @@ return {
 	},
 
 	size = {
-		control = 32,
+		--// inputHeight — with paddingY 5 either side this makes a 34px pill
+		control = 24,
+		--// suggestionHeight
 		row = 26,
-		--// (console) hintHeight
-		hint = 18,
+		--// hintHeight
+		hint = 17,
+		--// historyLineHeight
+		line = 14,
 		icon = 18,
 		touch = 44,
-		bar = 44,
+		--// panel.height
+		bar = 34,
 		title = 34,
 		thumb = 14,
 		rail = 4,
@@ -142,10 +153,11 @@ return {
 	--// shadow: opt-in. point `image` at your own 9-sliced soft shadow and every
 	--// surface picks it up; leave it empty and no shadow instance is created.
 	shadow = {
-		image = "",
+		--// the console's own soft shadow; swap it for your own or clear it
+		image = "rbxassetid://1316045217",
 		slice = Rect.new(10, 10, 118, 118),
 		color = Color3.fromRGB(0, 0, 0),
-		transparency = 0.55,
+		transparency = 0.8,
 		spread = 22,
 		offset = Vector2.new(0, 3),
 	},
@@ -156,15 +168,20 @@ return {
 	motion = {
 		instant = { duration = 0 },
 
-		--// (console) openSmoothTime / collapseSmoothTime
+		--// openSmoothTime / collapseSmoothTime / expandSmoothTime
 		enter = { duration = 0.46, easing = "outQuint" },
 		exit = { duration = 0.38, easing = "outQuad" },
+		expand = { duration = 0.34, easing = "outQuint" },
 		hover = { duration = 0.12, easing = "outQuad" },
 		press = { duration = 0.07, easing = "outQuad" },
-		--// (console) textFadeTime
-		fade = { duration = 0.14, easing = "outQuad" },
-		--// (console) itemSlideSmoothTime
-		item = { duration = 0.18, easing = "outQuad" },
+		--// textFadeTime / exitFadeTime
+		fade = { duration = 0.34, easing = "outQuad" },
+		--// hintFadeTime
+		hint = { duration = 0.22, easing = "outQuad" },
+		--// itemSlideSmoothTime
+		item = { duration = 0.3, easing = "outQuad" },
+		--// listSmoothTime
+		list = { duration = 0.28, easing = "outQuad" },
 
 		layout = { stiffness = 190, damping = 24 },
 		morph = { stiffness = 210, damping = 26 },
