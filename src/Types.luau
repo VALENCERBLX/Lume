@@ -474,6 +474,8 @@ export type Field = NodeFields & ElementFields & NodeApi<Field> & ElementApi<Fie
 	setPrefix: (self: Field, prefix: Bindable<string>) -> Field,
 	setIcon: (self: Field, image: Bindable<string>) -> Field,
 	setHint: (self: Field, hint: Bindable<string>) -> Field,
+	setFont: (self: Field, font: Enum.Font) -> Field,
+	setTextSize: (self: Field, size: number) -> Field,
 	setMultiline: (self: Field, multiline: boolean) -> Field,
 	setMasked: (self: Field, masked: boolean) -> Field,
 	setMaxLength: (self: Field, length: number) -> Field,
@@ -546,6 +548,8 @@ export type ListItem = {
 export type List = NodeFields & ElementFields & NodeApi<List> & ElementApi<List> & {
 	setItems: (self: List, items: Bindable<{ ListItem | string }>) -> List,
 	setRowHeight: (self: List, height: number) -> List,
+	setFont: (self: List, font: Enum.Font) -> List,
+	setTextSize: (self: List, size: number) -> List,
 	setVirtual: (self: List, virtual: boolean) -> List,
 	setMaxRows: (self: List, rows: number) -> List,
 	setSelectable: (self: List, selectable: boolean) -> List,

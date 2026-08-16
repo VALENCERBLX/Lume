@@ -180,7 +180,17 @@ subscription.
 
 ## Theming
 
-Tokens, deep-merged. Components read names, never literals.
+The defaults **are** the console look, not an approximation of it: pure black
+surfaces at `0.3` transparency, the terminal green at hue 142°, a pill that
+morphs to a 12px radius. The surface values are the ones the original used, and
+the demo capture measures back to them — panel interior reads 12.7 over ground
+at 36.8, so `12.7 / 36.8 ≈ 0.34` against black.
+
+Separation between layers comes from transparency, not from lightening each
+surface. That is what makes it read as glass over the world instead of as grey
+boxes, and it is the single thing most worth preserving if you retheme.
+
+Tokens are deep-merged. Components read names, never literals.
 
 ```lua
 app:restyle({
@@ -192,6 +202,13 @@ app:restyle({
 
 A restyle flushes the measurement cache and refreshes every panel, because sizes
 are text-derived — a font change is a layout change.
+
+`accent` defaults to the terminal green. If you want the neutral blue instead,
+it is kept as `info`:
+
+```lua
+app:restyle({ color = { accent = app.theme.color.info } })
+```
 
 Shadows are opt-in and ship with no baked asset. Point `theme.shadow.image` at
 your own nine-sliced soft shadow and every panel picks it up; leave it empty and
@@ -219,6 +236,18 @@ their connections and their subscriptions with it, in reverse creation order.
 panel:destroy()
 app:destroy()    -- and everything under it
 ```
+
+## Examples
+
+`examples/Terminal.client.luau` is the original console command bar rebuilt on
+Lume — a 1:1, with every metric taken from the original's own fallbacks rather
+than eyeballed. Verified against it: a 220×36 pill at radius 18, anchored 24px
+off the bottom, growing to 456 tall (`historyMaxHeight` 420 + 36) at radius 12
+with the bottom edge held.
+
+`examples/CommandBar.client.luau` is a smaller take on the same idea, and
+`examples/Inspector.client.luau` is a settings window with tabs, a modal and
+stacked toasts.
 
 ## Install
 

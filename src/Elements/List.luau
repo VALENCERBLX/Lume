@@ -35,6 +35,8 @@ export type Fields = Types.NodeFields & Types.ElementFields & {
 	rows: { Row },
 
 	rowHeight: number,
+	font: Enum.Font,
+	textSize: number,
 	maxRows: number,
 	virtual: boolean,
 	selectable: boolean,
@@ -88,6 +90,9 @@ function List.new(app: Types.App): Types.List
 
 			ClipsDescendants = true,
 			Name = "List",
+
+			--// starts empty, so it starts hidden; `setItems` reveals it
+			Visible = false,
 		},
 		children = {
 			{
@@ -144,6 +149,8 @@ function List.new(app: Types.App): Types.List
 		rows = {},
 
 		rowHeight = theme.size.row,
+		font = theme.font.body,
+		textSize = theme.text.sm,
 		maxRows = 8,
 		virtual = true,
 		selectable = true,
@@ -221,8 +228,8 @@ function List.buildRow(self: Fields, index: number): Row
 					AutomaticSize = Enum.AutomaticSize.X,
 					Size = UDim2.fromOffset(0, self.rowHeight),
 
-					Font = theme.font.body,
-					TextSize = theme.text.sm,
+					Font = self.font,
+					TextSize = self.textSize,
 					TextColor3 = theme.color.text,
 					TextXAlignment = Enum.TextXAlignment.Left,
 					TextYAlignment = Enum.TextYAlignment.Center,
@@ -359,6 +366,15 @@ function List.render(self: Fields)
 	end
 end
 
+--- An empty list with nothing to say occupies no space at all, and hides so
+--- the panel does not leave a gap where it would have been. This is what lets
+--- a command bar collapse to exactly one input row.
+function List.updateVisibility(self: Fields)
+	local blank = #self.items == 0 and self.emptyText == ""
+
+	self.instance.Visible = not blank
+end
+
 function List.setItems(self: Fields & Types.List, items: Types.Bindable<{ Types.ListItem | string }>): Types.List
 	Node.bind(self, "items", items, function(next: { Types.ListItem | string })
 		local normalised: { Types.ListItem } = {}
@@ -370,6 +386,7 @@ function List.setItems(self: Fields & Types.List, items: Types.Bindable<{ Types.
 		self.items = normalised
 		self.widest = 0
 
+		List.updateVisibility(self)
 		List.render(self)
 
 		--// stay glued to the bottom only if that is where the reader already was
@@ -387,6 +404,31 @@ function List.setRowHeight(self: Fields & Types.List, height: number): Types.Lis
 	self.rowHeight = math.max(1, height)
 
 	List.render(self)
+
+	return self:invalidate()
+end
+
+--- Sets the row font. A terminal history wants `Enum.Font.Code`; the widths
+--- the list reports are measured in whatever is set here, so the panel still
+--- sizes to the longest line.
+function List.setFont(self: Fields & Types.List, font: Enum.Font): Types.List
+	self.font = font
+	self.widest = 0
+
+	for _, row in self.rows do
+		row.title.Font = font
+	end
+
+	return self:invalidate()
+end
+
+function List.setTextSize(self: Fields & Types.List, size: number): Types.List
+	self.textSize = size
+	self.widest = 0
+
+	for _, row in self.rows do
+		row.title.TextSize = size
+	end
 
 	return self:invalidate()
 end
@@ -433,6 +475,8 @@ function List.setEmptyText(self: Fields & Types.List, text: Types.Bindable<strin
 
 		label.Text = value
 		label.Visible = #self.items == 0 and value ~= ""
+
+		List.updateVisibility(self)
 	end)
 
 	return self
@@ -490,6 +534,13 @@ function List.measure(self: Fields & Types.List, available: Vector2): Vector2
 	local theme = self.app.theme
 	local count = #self.items
 
+	if count == 0 and self.emptyText == "" then
+		self.desired = Vector2.zero
+		self.measured = true
+
+		return self.desired
+	end
+
 	local rows = math.min(math.max(count, 1), self.maxRows)
 	local height = rows * self.rowHeight
 
@@ -503,7 +554,7 @@ function List.measure(self: Fields & Types.List, available: Vector2): Vector2
 			local item = self.items[index]
 			local content = Text.strip(item.text or "")
 
-			local line = self.app.measure:width(content, theme.text.sm, theme.font.body)
+			local line = self.app.measure:width(content, self.textSize, self.font)
 
 			if item.description then
 				line += self.app.measure:width(item.description, theme.text.xs, theme.font.body) + theme.space.sm

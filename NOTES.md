@@ -42,6 +42,22 @@ The sleekness of that UI is not a colour palette. It is six mechanics:
   stretches it afterwards, once the panel has settled. Every element's `measure`
   now uses `available` only as a **ceiling** (`math.min(natural, available)`),
   never as the answer.
+- **The default theme is the console palette, not a "cleaned up" one.** The
+  first cut of the rewrite replaced v0's pure-black surfaces at `0.3`
+  transparency with `(10, 10, 12)` at `0.08`, on the theory that near-black
+  reads better than black. It does not — it turned glass into grey boxes and
+  lost the whole look. Restored to black at `0.3`, which is both what v0 had
+  and what the demo capture measures back to (panel interior 12.7 over ground
+  36.8 → `12.7 / 36.8 ≈ 0.34`). Layer separation comes from transparency, never
+  from lightening a surface.
+- **Terminal green is hue 142°**, measured off the demo and un-blended from the
+  panel behind it: `Color3.fromRGB(102, 209, 140)`. `accent` defaults to it;
+  v0's blue is kept as `info`.
+- **An empty list must occupy nothing.** `math.max(count, 1)` in the row
+  arithmetic gave a blank list one phantom row, which made the collapsed
+  command bar 60 tall instead of 36. A list with no items and no empty text now
+  measures zero *and* hides, so the panel does not leave a gap where it would
+  have been.
 - **The morph threshold is per-panel, not a token.** "One row tall" means
   `padY * 2 + size.control + chrome`, computed from the panel's own padding. A
   panel with roomier padding is still a single row and should still be a pill;

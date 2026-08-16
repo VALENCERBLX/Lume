@@ -2307,11 +2307,12 @@ return Chips\
 "},
 {"Lume/Elements/Divider","ModuleScript","--!strict\
 \
---- A hairline rule, optionally with a caption sitting on it.\
+--- A hairline rule, optionally with a caption.\
 ---\
---- The caption is drawn over the line on an opaque chip rather than splitting\
---- the line into two measured halves, which keeps it correct at any width\
---- without a second layout pass.\
+--- A labelled divider hides its rule and shows only the caption. The usual\
+--- trick — floating the caption on an opaque chip over the line — needs an\
+--- opaque surface to hide behind, and Lume's surfaces are translucent by\
+--- default, so the line would ghost through the text.\
 --- @section Elements\
 \
 local Types = require(script.Parent.Parent.Types)\
@@ -2361,8 +2362,7 @@ function Divider.new(app: Types.App): Types.Divider\
 				class = \"TextLabel\",\
 				ref = \"caption\",\
 				props = {\
-					BackgroundColor3 = theme.color.surface,\
-					BackgroundTransparency = theme.transparency.surface,\
+					BackgroundTransparency = 1,\
 					BorderSizePixel = 0,\
 \
 					AnchorPoint = Vector2.new(0, 0.5),\
@@ -2423,6 +2423,9 @@ function Divider.setLabel(self: Fields & Types.Divider, label: Types.Bindable<st
 		caption.Visible = value ~= \"\"\
 \
 		self.labelled = value ~= \"\"\
+\
+		--// the rule and the caption are alternatives, not neighbours\
+		;(self.refs.line :: Frame).Visible = not self.labelled\
 \
 		self:invalidate()\
 	end)\
@@ -2736,6 +2739,8 @@ export type Fields = Types.NodeFields & Types.ElementFields & {\
 	hintText: string,\
 	iconImage: string,\
 \
+	font: Enum.Font,\
+	textSize: number,\
 	multiline: boolean,\
 	masked: boolean,\
 	maxLength: number,\
@@ -2937,6 +2942,8 @@ function Field.new(app: Types.App): Types.Field\
 		hintText = \"\",\
 		iconImage = \"\",\
 \
+		font = theme.font.body,\
+		textSize = theme.text.md,\
 		multiline = false,\
 		masked = false,\
 		maxLength = 0,\
@@ -3039,7 +3046,7 @@ function Field.layoutHint(self: Fields)\
 	end\
 \
 	local theme = self.app.theme\
-	local width = self.app.measure:width(self.current, theme.text.md, theme.font.body)\
+	local width = self.app.measure:width(self.current, self.textSize, self.font)\
 \
 	hint.Position = UDim2.fromOffset(math.ceil(width), 0)\
 	hint.Visible = true\
@@ -3121,6 +3128,41 @@ function Field.setHint(self: Fields & Types.Field, hint: Types.Bindable<string>)
 	end)\
 \
 	return self\
+end\
+\
+--- Sets the font on the input, placeholder, hint and mask together, so the\
+--- ghost completion still lines up with the text it follows. A terminal wants\
+--- `Enum.Font.Code` here.\
+function Field.setFont(self: Fields & Types.Field, font: Enum.Font): Types.Field\
+	self.font = font\
+\
+	for _, key in { \"input\", \"placeholder\", \"hint\", \"mask\" } do\
+		local label = self.refs[key]\
+\
+		if label then\
+			(label :: any).Font = font\
+		end\
+	end\
+\
+	Field.layoutHint(self)\
+\
+	return self:invalidate()\
+end\
+\
+function Field.setTextSize(self: Fields & Types.Field, size: number): Types.Field\
+	self.textSize = size\
+\
+	for _, key in { \"input\", \"placeholder\", \"hint\", \"mask\", \"prefix\" } do\
+		local label = self.refs[key]\
+\
+		if label then\
+			(label :: any).TextSize = size\
+		end\
+	end\
+\
+	Field.layoutHint(self)\
+\
+	return self:invalidate()\
 end\
 \
 function Field.setMultiline(self: Fields & Types.Field, multiline: boolean): Types.Field\
@@ -3208,8 +3250,8 @@ function Field.measure(self: Fields & Types.Field, available: Vector2): Vector2\
 	if self.multiline then\
 		local lines = self.app.measure:text(\
 			if self.current == \"\" then self.placeholderText else self.current,\
-			theme.text.md,\
-			theme.font.body,\
+			self.textSize,\
+			self.font,\
 			math.max(1, available.X - theme.space.sm * 2)\
 		)\
 \
@@ -3220,14 +3262,14 @@ function Field.measure(self: Fields & Types.Field, available: Vector2): Vector2\
 	--// for it), plus the leading furniture. Growing with what you type is what\
 	--// makes a command bar widen as you use it\
 	local shown = if self.current ~= \"\" then self.current else self.placeholderText\
-	local content = self.app.measure:width(shown .. self.hintText, theme.text.md, theme.font.body)\
+	local content = self.app.measure:width(shown .. self.hintText, self.textSize, self.font)\
 \
 	if self.iconImage ~= \"\" then\
 		content += theme.size.icon + theme.space.xs\
 	end\
 \
 	if self.prefixText ~= \"\" then\
-		content += self.app.measure:width(self.prefixText, theme.text.md, theme.font.mono) + theme.space.xs\
+		content += self.app.measure:width(self.prefixText, self.textSize, theme.font.mono) + theme.space.xs\
 	end\
 \
 	local natural = math.max(160, content + theme.space.sm * 2 + theme.space.md)\
@@ -3255,7 +3297,7 @@ function Field.commit(self: Fields & Types.Field, inner: Vector2, vertical: bool
 	end\
 \
 	if self.prefixText ~= \"\" then\
-		used += self.app.measure:width(self.prefixText, theme.text.md, theme.font.mono) + theme.space.xs\
+		used += self.app.measure:width(self.prefixText, self.textSize, theme.font.mono) + theme.space.xs\
 	end\
 \
 	;(self.refs.box :: Frame).Size = UDim2.new(0, math.max(0, width - used), 1, 0)\
@@ -4222,6 +4264,8 @@ export type Fields = Types.NodeFields & Types.ElementFields & {\
 	rows: { Row },\
 \
 	rowHeight: number,\
+	font: Enum.Font,\
+	textSize: number,\
 	maxRows: number,\
 	virtual: boolean,\
 	selectable: boolean,\
@@ -4275,6 +4319,9 @@ function List.new(app: Types.App): Types.List\
 \
 			ClipsDescendants = true,\
 			Name = \"List\",\
+\
+			--// starts empty, so it starts hidden; `setItems` reveals it\
+			Visible = false,\
 		},\
 		children = {\
 			{\
@@ -4331,6 +4378,8 @@ function List.new(app: Types.App): Types.List\
 		rows = {},\
 \
 		rowHeight = theme.size.row,\
+		font = theme.font.body,\
+		textSize = theme.text.sm,\
 		maxRows = 8,\
 		virtual = true,\
 		selectable = true,\
@@ -4408,8 +4457,8 @@ function List.buildRow(self: Fields, index: number): Row\
 					AutomaticSize = Enum.AutomaticSize.X,\
 					Size = UDim2.fromOffset(0, self.rowHeight),\
 \
-					Font = theme.font.body,\
-					TextSize = theme.text.sm,\
+					Font = self.font,\
+					TextSize = self.textSize,\
 					TextColor3 = theme.color.text,\
 					TextXAlignment = Enum.TextXAlignment.Left,\
 					TextYAlignment = Enum.TextYAlignment.Center,\
@@ -4546,6 +4595,15 @@ function List.render(self: Fields)\
 	end\
 end\
 \
+--- An empty list with nothing to say occupies no space at all, and hides so\
+--- the panel does not leave a gap where it would have been. This is what lets\
+--- a command bar collapse to exactly one input row.\
+function List.updateVisibility(self: Fields)\
+	local blank = #self.items == 0 and self.emptyText == \"\"\
+\
+	self.instance.Visible = not blank\
+end\
+\
 function List.setItems(self: Fields & Types.List, items: Types.Bindable<{ Types.ListItem | string }>): Types.List\
 	Node.bind(self, \"items\", items, function(next: { Types.ListItem | string })\
 		local normalised: { Types.ListItem } = {}\
@@ -4557,6 +4615,7 @@ function List.setItems(self: Fields & Types.List, items: Types.Bindable<{ Types.
 		self.items = normalised\
 		self.widest = 0\
 \
+		List.updateVisibility(self)\
 		List.render(self)\
 \
 		--// stay glued to the bottom only if that is where the reader already was\
@@ -4574,6 +4633,31 @@ function List.setRowHeight(self: Fields & Types.List, height: number): Types.Lis
 	self.rowHeight = math.max(1, height)\
 \
 	List.render(self)\
+\
+	return self:invalidate()\
+end\
+\
+--- Sets the row font. A terminal history wants `Enum.Font.Code`; the widths\
+--- the list reports are measured in whatever is set here, so the panel still\
+--- sizes to the longest line.\
+function List.setFont(self: Fields & Types.List, font: Enum.Font): Types.List\
+	self.font = font\
+	self.widest = 0\
+\
+	for _, row in self.rows do\
+		row.title.Font = font\
+	end\
+\
+	return self:invalidate()\
+end\
+\
+function List.setTextSize(self: Fields & Types.List, size: number): Types.List\
+	self.textSize = size\
+	self.widest = 0\
+\
+	for _, row in self.rows do\
+		row.title.TextSize = size\
+	end\
 \
 	return self:invalidate()\
 end\
@@ -4620,6 +4704,8 @@ function List.setEmptyText(self: Fields & Types.List, text: Types.Bindable<strin
 \
 		label.Text = value\
 		label.Visible = #self.items == 0 and value ~= \"\"\
+\
+		List.updateVisibility(self)\
 	end)\
 \
 	return self\
@@ -4677,6 +4763,13 @@ function List.measure(self: Fields & Types.List, available: Vector2): Vector2\
 	local theme = self.app.theme\
 	local count = #self.items\
 \
+	if count == 0 and self.emptyText == \"\" then\
+		self.desired = Vector2.zero\
+		self.measured = true\
+\
+		return self.desired\
+	end\
+\
 	local rows = math.min(math.max(count, 1), self.maxRows)\
 	local height = rows * self.rowHeight\
 \
@@ -4690,7 +4783,7 @@ function List.measure(self: Fields & Types.List, available: Vector2): Vector2\
 			local item = self.items[index]\
 			local content = Text.strip(item.text or \"\")\
 \
-			local line = self.app.measure:width(content, theme.text.sm, theme.font.body)\
+			local line = self.app.measure:width(content, self.textSize, self.font)\
 \
 			if item.description then\
 				line += self.app.measure:width(item.description, theme.text.xs, theme.font.body) + theme.space.sm\
@@ -11694,41 +11787,56 @@ return Theme\
 --- The default token set. Components read from here and never from literals,\
 --- so one `app:restyle{…}` call restyles the whole tree.\
 ---\
---- The palette is a translucent near-black with cool grey type — the console\
---- look — but nothing below is load-bearing except the *names*. Swap every\
---- colour and the layout, motion and measurement all still hold.\
+--- These values are the console look, not an invention. The surfaces are pure\
+--- black at roughly a third transparency, which is what the original terminal\
+--- used and what the demo capture measures back to: panel interior reads 12.7\
+--- over ground at 36.8, so `12.7 / 36.8 ≈ 0.34` against black.\
+---\
+--- Numbers marked *(console)* are lifted from the original UI's own fallbacks\
+--- (`panel.stackGap or 8`, `motion.outputSmoothTime or 0.24`, and so on), so\
+--- the defaults match the thing they came from rather than approximating it.\
 --- @section Theme\
 \
 return {\
 	name = \"default\",\
 \
 	color = {\
-		--// surfaces, lightest on top\
-		surface = Color3.fromRGB(10, 10, 12),\
-		surfaceRaised = Color3.fromRGB(18, 18, 22),\
-		surfaceSunken = Color3.fromRGB(6, 6, 8),\
-		surfaceHover = Color3.fromRGB(28, 28, 34),\
-		surfaceActive = Color3.fromRGB(38, 38, 46),\
+		--// pure black surfaces. The separation between layers comes from\
+		--// transparency, not from lightening each one — which is why the\
+		--// console reads as glass over the world instead of as grey boxes\
+		surface = Color3.fromRGB(0, 0, 0),\
+		surfaceRaised = Color3.fromRGB(0, 0, 0),\
+		surfaceSunken = Color3.fromRGB(0, 0, 0),\
+		surfaceHover = Color3.fromRGB(255, 255, 255),\
+		surfaceActive = Color3.fromRGB(255, 255, 255),\
 		overlay = Color3.fromRGB(0, 0, 0),\
 \
-		border = Color3.fromRGB(60, 60, 70),\
-		borderStrong = Color3.fromRGB(96, 96, 112),\
+		border = Color3.fromRGB(0, 0, 0),\
+		borderStrong = Color3.fromRGB(96, 96, 106),\
 \
 		text = Color3.fromRGB(238, 238, 242),\
 		textMuted = Color3.fromRGB(146, 146, 158),\
 		textGhost = Color3.fromRGB(96, 96, 106),\
 		textInverse = Color3.fromRGB(12, 12, 14),\
 \
-		accent = Color3.fromRGB(126, 170, 255),\
-		accentMuted = Color3.fromRGB(74, 102, 156),\
-		accentText = Color3.fromRGB(12, 14, 20),\
+		--// the terminal green: measured off the demo at hue 142°, un-blended\
+		--// from the near-black panel behind it\
+		terminal = Color3.fromRGB(102, 209, 140),\
 \
-		success = Color3.fromRGB(126, 226, 150),\
-		warn = Color3.fromRGB(255, 206, 122),\
+		accent = Color3.fromRGB(102, 209, 140),\
+		accentMuted = Color3.fromRGB(64, 130, 88),\
+		accentText = Color3.fromRGB(8, 14, 10),\
+\
+		--// v0's blue, kept for anyone who wants the non-terminal accent back:\
+		--// `app:restyle({ color = { accent = theme.color.info } })`\
+		info = Color3.fromRGB(126, 170, 255),\
+\
+		success = Color3.fromRGB(137, 255, 126),\
+		warn = Color3.fromRGB(255, 214, 126),\
 		danger = Color3.fromRGB(255, 126, 126),\
 \
-		track = Color3.fromRGB(48, 48, 58),\
-		selection = Color3.fromRGB(126, 170, 255),\
+		track = Color3.fromRGB(255, 255, 255),\
+		selection = Color3.fromRGB(102, 209, 140),\
 	},\
 \
 	--// hex mirrors of the palette, for RichText spans\
@@ -11736,22 +11844,25 @@ return {\
 		text = \"#EEEEF2\",\
 		muted = \"#9292A0\",\
 		ghost = \"#60606A\",\
-		accent = \"#7EAAFF\",\
-		success = \"#7EE296\",\
-		warn = \"#FFCE7A\",\
+		terminal = \"#66D18C\",\
+		accent = \"#66D18C\",\
+		success = \"#89FF7E\",\
+		warn = \"#FFD67E\",\
 		danger = \"#FF7E7E\",\
 	},\
 \
 	transparency = {\
-		surface = 0.08,\
-		surfaceRaised = 0.04,\
+		--// the console's own values: surfaces at a third, borders faint,\
+		--// body text solid\
+		surface = 0.3,\
+		surfaceRaised = 0.3,\
 		overlay = 0.45,\
-		border = 0.4,\
+		border = 0.35,\
 		text = 0,\
-		muted = 0.25,\
-		ghost = 0.45,\
-		track = 0.3,\
-		shadow = 0.6,\
+		muted = 0.5,\
+		ghost = 0.6,\
+		track = 0.88,\
+		shadow = 0.55,\
 		disabled = 0.6,\
 	},\
 \
@@ -11775,8 +11886,10 @@ return {\
 		none = 0,\
 		xs = 4,\
 		sm = 8,\
+		--// (console) layout.paddingX\
 		md = 12,\
 		lg = 16,\
+		--// (console) viewportTopInset — how close a panel comes to the edge\
 		xl = 24,\
 		xxl = 32,\
 	},\
@@ -11784,8 +11897,10 @@ return {\
 	radius = {\
 		xs = 4,\
 		sm = 6,\
+		--// (console) suggestionRadius\
 		md = 10,\
-		lg = 14,\
+		--// (console) outputRadius — what the pill morphs into\
+		lg = 12,\
 		xl = 20,\
 		pill = 999,\
 	},\
@@ -11798,7 +11913,8 @@ return {\
 	size = {\
 		control = 32,\
 		row = 26,\
-		hint = 20,\
+		--// (console) hintHeight\
+		hint = 18,\
 		icon = 18,\
 		touch = 44,\
 		bar = 44,\
@@ -11811,23 +11927,28 @@ return {\
 	--// surface picks it up; leave it empty and no shadow instance is created.\
 	shadow = {\
 		image = \"\",\
-		slice = Rect.new(64, 64, 64, 64),\
+		slice = Rect.new(10, 10, 118, 118),\
 		color = Color3.fromRGB(0, 0, 0),\
-		transparency = 0.6,\
+		transparency = 0.55,\
 		spread = 22,\
-		offset = Vector2.new(0, 4),\
+		offset = Vector2.new(0, 3),\
 	},\
 \
 	--// motion: `duration` + `easing` tweens, `stiffness` + `damping` springs.\
-	--// Anything whose target can change mid-flight is a spring on purpose.\
+	--// The tween durations are the console's own smooth times; anything whose\
+	--// target can change mid-flight stays a spring on purpose.\
 	motion = {\
 		instant = { duration = 0 },\
 \
-		enter = { duration = 0.22, easing = \"outQuint\" },\
-		exit = { duration = 0.16, easing = \"outQuad\" },\
+		--// (console) openSmoothTime / collapseSmoothTime\
+		enter = { duration = 0.46, easing = \"outQuint\" },\
+		exit = { duration = 0.38, easing = \"outQuad\" },\
 		hover = { duration = 0.12, easing = \"outQuad\" },\
 		press = { duration = 0.07, easing = \"outQuad\" },\
+		--// (console) textFadeTime\
 		fade = { duration = 0.14, easing = \"outQuad\" },\
+		--// (console) itemSlideSmoothTime\
+		item = { duration = 0.18, easing = \"outQuad\" },\
 \
 		layout = { stiffness = 190, damping = 24 },\
 		morph = { stiffness = 210, damping = 26 },\
@@ -12313,6 +12434,8 @@ export type Field = NodeFields & ElementFields & NodeApi<Field> & ElementApi<Fie
 	setPrefix: (self: Field, prefix: Bindable<string>) -> Field,\
 	setIcon: (self: Field, image: Bindable<string>) -> Field,\
 	setHint: (self: Field, hint: Bindable<string>) -> Field,\
+	setFont: (self: Field, font: Enum.Font) -> Field,\
+	setTextSize: (self: Field, size: number) -> Field,\
 	setMultiline: (self: Field, multiline: boolean) -> Field,\
 	setMasked: (self: Field, masked: boolean) -> Field,\
 	setMaxLength: (self: Field, length: number) -> Field,\
@@ -12385,6 +12508,8 @@ export type ListItem = {\
 export type List = NodeFields & ElementFields & NodeApi<List> & ElementApi<List> & {\
 	setItems: (self: List, items: Bindable<{ ListItem | string }>) -> List,\
 	setRowHeight: (self: List, height: number) -> List,\
+	setFont: (self: List, font: Enum.Font) -> List,\
+	setTextSize: (self: List, size: number) -> List,\
 	setVirtual: (self: List, virtual: boolean) -> List,\
 	setMaxRows: (self: List, rows: number) -> List,\
 	setSelectable: (self: List, selectable: boolean) -> List,\

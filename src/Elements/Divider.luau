@@ -1,10 +1,11 @@
 --!strict
 
---- A hairline rule, optionally with a caption sitting on it.
+--- A hairline rule, optionally with a caption.
 ---
---- The caption is drawn over the line on an opaque chip rather than splitting
---- the line into two measured halves, which keeps it correct at any width
---- without a second layout pass.
+--- A labelled divider hides its rule and shows only the caption. The usual
+--- trick — floating the caption on an opaque chip over the line — needs an
+--- opaque surface to hide behind, and Lume's surfaces are translucent by
+--- default, so the line would ghost through the text.
 --- @section Elements
 
 local Types = require(script.Parent.Parent.Types)
@@ -54,8 +55,7 @@ function Divider.new(app: Types.App): Types.Divider
 				class = "TextLabel",
 				ref = "caption",
 				props = {
-					BackgroundColor3 = theme.color.surface,
-					BackgroundTransparency = theme.transparency.surface,
+					BackgroundTransparency = 1,
 					BorderSizePixel = 0,
 
 					AnchorPoint = Vector2.new(0, 0.5),
@@ -116,6 +116,9 @@ function Divider.setLabel(self: Fields & Types.Divider, label: Types.Bindable<st
 		caption.Visible = value ~= ""
 
 		self.labelled = value ~= ""
+
+		--// the rule and the caption are alternatives, not neighbours
+		;(self.refs.line :: Frame).Visible = not self.labelled
 
 		self:invalidate()
 	end)

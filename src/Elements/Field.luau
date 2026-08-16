@@ -30,6 +30,8 @@ export type Fields = Types.NodeFields & Types.ElementFields & {
 	hintText: string,
 	iconImage: string,
 
+	font: Enum.Font,
+	textSize: number,
 	multiline: boolean,
 	masked: boolean,
 	maxLength: number,
@@ -231,6 +233,8 @@ function Field.new(app: Types.App): Types.Field
 		hintText = "",
 		iconImage = "",
 
+		font = theme.font.body,
+		textSize = theme.text.md,
 		multiline = false,
 		masked = false,
 		maxLength = 0,
@@ -333,7 +337,7 @@ function Field.layoutHint(self: Fields)
 	end
 
 	local theme = self.app.theme
-	local width = self.app.measure:width(self.current, theme.text.md, theme.font.body)
+	local width = self.app.measure:width(self.current, self.textSize, self.font)
 
 	hint.Position = UDim2.fromOffset(math.ceil(width), 0)
 	hint.Visible = true
@@ -415,6 +419,41 @@ function Field.setHint(self: Fields & Types.Field, hint: Types.Bindable<string>)
 	end)
 
 	return self
+end
+
+--- Sets the font on the input, placeholder, hint and mask together, so the
+--- ghost completion still lines up with the text it follows. A terminal wants
+--- `Enum.Font.Code` here.
+function Field.setFont(self: Fields & Types.Field, font: Enum.Font): Types.Field
+	self.font = font
+
+	for _, key in { "input", "placeholder", "hint", "mask" } do
+		local label = self.refs[key]
+
+		if label then
+			(label :: any).Font = font
+		end
+	end
+
+	Field.layoutHint(self)
+
+	return self:invalidate()
+end
+
+function Field.setTextSize(self: Fields & Types.Field, size: number): Types.Field
+	self.textSize = size
+
+	for _, key in { "input", "placeholder", "hint", "mask", "prefix" } do
+		local label = self.refs[key]
+
+		if label then
+			(label :: any).TextSize = size
+		end
+	end
+
+	Field.layoutHint(self)
+
+	return self:invalidate()
 end
 
 function Field.setMultiline(self: Fields & Types.Field, multiline: boolean): Types.Field
@@ -502,8 +541,8 @@ function Field.measure(self: Fields & Types.Field, available: Vector2): Vector2
 	if self.multiline then
 		local lines = self.app.measure:text(
 			if self.current == "" then self.placeholderText else self.current,
-			theme.text.md,
-			theme.font.body,
+			self.textSize,
+			self.font,
 			math.max(1, available.X - theme.space.sm * 2)
 		)
 
@@ -514,14 +553,14 @@ function Field.measure(self: Fields & Types.Field, available: Vector2): Vector2
 	--// for it), plus the leading furniture. Growing with what you type is what
 	--// makes a command bar widen as you use it
 	local shown = if self.current ~= "" then self.current else self.placeholderText
-	local content = self.app.measure:width(shown .. self.hintText, theme.text.md, theme.font.body)
+	local content = self.app.measure:width(shown .. self.hintText, self.textSize, self.font)
 
 	if self.iconImage ~= "" then
 		content += theme.size.icon + theme.space.xs
 	end
 
 	if self.prefixText ~= "" then
-		content += self.app.measure:width(self.prefixText, theme.text.md, theme.font.mono) + theme.space.xs
+		content += self.app.measure:width(self.prefixText, self.textSize, theme.font.mono) + theme.space.xs
 	end
 
 	local natural = math.max(160, content + theme.space.sm * 2 + theme.space.md)
@@ -549,7 +588,7 @@ function Field.commit(self: Fields & Types.Field, inner: Vector2, vertical: bool
 	end
 
 	if self.prefixText ~= "" then
-		used += self.app.measure:width(self.prefixText, theme.text.md, theme.font.mono) + theme.space.xs
+		used += self.app.measure:width(self.prefixText, self.textSize, theme.font.mono) + theme.space.xs
 	end
 
 	;(self.refs.box :: Frame).Size = UDim2.new(0, math.max(0, width - used), 1, 0)
