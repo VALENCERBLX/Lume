@@ -2741,6 +2741,7 @@ export type Fields = Types.NodeFields & Types.ElementFields & {\
 \
 	font: Enum.Font,\
 	textSize: number,\
+	trailingImage: string,\
 	multiline: boolean,\
 	masked: boolean,\
 	maxLength: number,\
@@ -2818,6 +2819,28 @@ function Field.new(app: Types.App): Types.Field\
 					Visible = false,\
 					Name = \"Prefix\",\
 					Text = \"\",\
+				},\
+			},\
+			{\
+				class = \"ImageLabel\",\
+				ref = \"trailing\",\
+				props = {\
+					BackgroundTransparency = 1,\
+					ImageColor3 = theme.color.textGhost,\
+					ImageTransparency = theme.transparency.arrow,\
+					ScaleType = Enum.ScaleType.Fit,\
+\
+					Size = UDim2.fromOffset(12, 12),\
+\
+					--// the root has a UIListLayout, which positions every child\
+					--// and ignores Position entirely. Without a LayoutOrder past\
+					--// the input box this lands on the LEFT of the row\
+					LayoutOrder = 4,\
+\
+					Visible = false,\
+					Name = \"Trailing\",\
+					Image = \"\",\
+					ZIndex = 4,\
 				},\
 			},\
 			{\
@@ -2944,6 +2967,7 @@ function Field.new(app: Types.App): Types.Field\
 \
 		font = theme.font.body,\
 		textSize = theme.text.md,\
+		trailingImage = \"\",\
 		multiline = false,\
 		masked = false,\
 		maxLength = 0,\
@@ -3165,6 +3189,88 @@ function Field.setTextSize(self: Fields & Types.Field, size: number): Types.Fiel
 	return self:invalidate()\
 end\
 \
+--- A glyph pinned to the right edge — the console's submit arrow. It floats\
+--- above the input rather than joining the row, so it does not shift the caret.\
+function Field.setTrailingIcon(self: Fields & Types.Field, image: Types.Bindable<string>): Types.Field\
+	local icon = self.refs.trailing :: ImageLabel\
+\
+	Node.bind(self, \"trailing\", image, function(next: string)\
+		local value = tostring(next)\
+\
+		self.trailingImage = value\
+\
+		icon.Image = value\
+		icon.Visible = value ~= \"\"\
+\
+		self:invalidate()\
+	end)\
+\
+	return self\
+end\
+\
+--- Recolours the parts independently. Omitted keys are left alone.\
+function Field.setColors(self: Fields & Types.Field, colors: { [string]: Color3 }): Types.Field\
+	local map = {\
+		text = { \"input\", \"mask\" },\
+		placeholder = { \"placeholder\" },\
+		prefix = { \"prefix\" },\
+		hint = { \"hint\" },\
+		icon = { \"icon\", \"trailing\" },\
+	}\
+\
+	for key, targets in map do\
+		local colour = colors[key]\
+\
+		if not colour then\
+			continue\
+		end\
+\
+		for _, name in targets do\
+			local instance = self.refs[name]\
+\
+			if not instance then\
+				continue\
+			end\
+\
+			if instance:IsA(\"ImageLabel\") then\
+				(instance :: ImageLabel).ImageColor3 = colour\
+			else\
+				(instance :: any).TextColor3 = colour\
+			end\
+		end\
+	end\
+\
+	return self\
+end\
+\
+--- The input's own corner radius, independent of the panel's.\
+function Field.setRadius(self: Fields & Types.Field, radius: number | \"pill\"): Types.Field\
+	local corner = self.instance:FindFirstChildOfClass(\"UICorner\")\
+\
+	if corner then\
+		corner.CornerRadius = if radius == \"pill\" then UDim.new(1, 0) else UDim.new(0, radius :: number)\
+	end\
+\
+	return self\
+end\
+\
+--- The well the text sits in. A console wants this invisible, since the panel\
+--- behind it already is the surface.\
+function Field.setSurface(self: Fields & Types.Field, color: Color3, transparency: number): Types.Field\
+	local root = self.instance :: Frame\
+\
+	root.BackgroundColor3 = color\
+	root.BackgroundTransparency = transparency\
+\
+	return self\
+end\
+\
+function Field.setBorder(self: Fields & Types.Field, enabled: boolean): Types.Field\
+	(self.refs.stroke :: UIStroke).Enabled = enabled ~= false\
+\
+	return self\
+end\
+\
 function Field.setMultiline(self: Fields & Types.Field, multiline: boolean): Types.Field\
 	local input = self.refs.input :: TextBox\
 \
@@ -3272,6 +3378,10 @@ function Field.measure(self: Fields & Types.Field, available: Vector2): Vector2\
 		content += self.app.measure:width(self.prefixText, self.textSize, theme.font.mono) + theme.space.xs\
 	end\
 \
+	if self.trailingImage ~= \"\" then\
+		content += 12 + theme.space.xs\
+	end\
+\
 	local natural = math.max(160, content + theme.space.sm * 2 + theme.space.md)\
 	local width = math.min(natural, math.max(1, available.X - self.margin * 2))\
 \
@@ -3298,6 +3408,10 @@ function Field.commit(self: Fields & Types.Field, inner: Vector2, vertical: bool
 \
 	if self.prefixText ~= \"\" then\
 		used += self.app.measure:width(self.prefixText, self.textSize, theme.font.mono) + theme.space.xs\
+	end\
+\
+	if self.trailingImage ~= \"\" then\
+		used += 12 + theme.space.xs\
 	end\
 \
 	;(self.refs.box :: Frame).Size = UDim2.new(0, math.max(0, width - used), 1, 0)\
@@ -4504,6 +4618,15 @@ function List.buildRow(self: Fields, index: number): Row\
 	button.Parent = self.refs.canvas\
 \
 	Hover.attach(self.scope, row.button, function(hovering)\
+		--// a list that cannot be selected is output, not a menu. Highlighting a\
+		--// line of console output on hover makes it look clickable when it is\
+		--// not, so rows stay flat\
+		if not self.selectable then\
+			row.button.BackgroundTransparency = 1\
+\
+			return\
+		end\
+\
 		local item = self.items[row.index]\
 		local selected = item ~= nil and item.id == self.selectedId\
 \
@@ -4578,7 +4701,7 @@ function List.render(self: Fields)\
 		row.button.Visible = true\
 		row.button.Position = UDim2.fromOffset(0, Virtual.offset(index, self.rowHeight))\
 		row.button.Size = UDim2.new(1, 0, 0, self.rowHeight)\
-		row.button.BackgroundTransparency = if selected then 0.82 else 1\
+		row.button.BackgroundTransparency = if selected and self.selectable then 0.82 else 1\
 \
 		row.title.Text = if self.renderer then self.renderer(item, index) else Text.escape(item.text or \"\")\
 		row.title.TextColor3 = if selected then theme.color.text else theme.color.text\
@@ -6828,6 +6951,19 @@ function Suggest.setMatcher(\
 	return self\
 end\
 \
+--- Points the list at a field WITHOUT taking over its filtering.\
+---\
+--- `attach` assumes the list drives itself from the field's text. A consumer\
+--- with its own grammar — deciding that `@Players.` means players and `--` means\
+--- flags — needs the opposite: it feeds the query itself, but still wants\
+--- `accept` to write into the field and the ghost hint to appear after the\
+--- caret. That is what this is for.\
+function Suggest.setField(self: Fields & Types.Suggest, field: Types.Field): Types.Suggest\
+	self.field = field\
+\
+	return self\
+end\
+\
 --- Wires a field to this suggestion list: its text drives the query, its ghost\
 --- hint shows the completion, and the arrow keys drive the highlight.\
 function Suggest.attach(self: Fields & Types.Suggest, field: Types.Field): Types.Suggest\
@@ -7728,12 +7864,16 @@ return Toggle\
 {"Lume/Input","Folder",nil},
 {"Lume/Input/Drag","ModuleScript","--!strict\
 \
---- Dragging, one-to-one with the pointer.\
+--- Dragging.\
 ---\
---- Movement is assigned straight to `Position` rather than routed through the\
---- motion driver: a dragged panel that lags its cursor by even two frames feels\
---- broken. The spring only comes back on release, when the panel settles into\
---- the viewport if the throw took it past the edge.\
+--- By default movement is assigned straight to `Position`, because a dragged\
+--- panel that lags its cursor by even two frames feels broken.\
+---\
+--- `smooth` opts into the other behaviour: the position is retargeted on a\
+--- spring each frame, so the panel trails the pointer with a little weight and\
+--- overshoots slightly when released. Retargeting a live spring keeps its\
+--- velocity, so a continuous drag is one weighted movement rather than a chain\
+--- of restarts.\
 --- @section Input\
 \
 local UserInputService = game:GetService(\"UserInputService\")\
@@ -7754,6 +7894,15 @@ export type Options = {\
 	bounds: boolean?,\
 	inset: number?,\
 	axis: (\"x\" | \"y\")?,\
+\
+	--- Spring the panel toward the pointer instead of pinning it there.\
+	---\
+	--- Off by default, because a window that lags its cursor usually feels\
+	--- broken. It is worth turning on for a console: the weight reads as the\
+	--- panel having mass, and the settle overshoots slightly on release.\
+	smooth: boolean?,\
+	follow: (Types.MotionSpec | string)?,\
+	settle: (Types.MotionSpec | string)?,\
 }\
 \
 export type Fields = {\
@@ -7773,6 +7922,10 @@ export type Fields = {\
 	bounded: boolean,\
 	inset: number,\
 	axis: (\"x\" | \"y\")?,\
+\
+	smooth: boolean,\
+	follow: (Types.MotionSpec | string)?,\
+	settle: (Types.MotionSpec | string)?,\
 }\
 \
 local DRAG_INPUTS: { [Enum.UserInputType]: boolean } = {\
@@ -7808,6 +7961,10 @@ function Drag.attach(app: Types.App, target: GuiObject, options: Options?): Type
 		bounded = settings.bounds ~= false,\
 		inset = settings.inset or app.theme.space.sm,\
 		axis = settings.axis,\
+\
+		smooth = settings.smooth == true,\
+		follow = settings.follow or \"drag\",\
+		settle = settings.settle or \"toss\",\
 	}\
 \
 	local handle = setmetatable(self, Drag) :: any\
@@ -7853,7 +8010,13 @@ function Drag.attach(app: Types.App, target: GuiObject, options: Options?): Type
 			self.anchor.Y.Offset + delta.Y\
 		)\
 \
-		target.Position = next\
+		--// retargeting a live spring keeps its velocity, so a continuous drag\
+		--// reads as one weighted movement rather than a chain of restarts\
+		if self.smooth then\
+			Motion.animate(target, { Position = next }, app.theme:spec(self.follow))\
+		else\
+			target.Position = next\
+		end\
 \
 		self.moved:fire(next)\
 	end\
@@ -7875,10 +8038,13 @@ function Drag.attach(app: Types.App, target: GuiObject, options: Options?): Type
 				app:viewport(),\
 				self.inset\
 			)\
+		end\
 \
-			if settled ~= target.Position then\
-				Motion.animate(target, { Position = settled }, app.theme:spec(\"drag\"))\
-			end\
+		--// a smooth drag is still mid-flight when the pointer lets go, so it\
+		--// always gets a settle; a pinned one only needs it when it has to be\
+		--// pushed back inside the viewport\
+		if self.smooth or settled ~= target.Position then\
+			Motion.animate(target, { Position = settled }, app.theme:spec(self.settle))\
 		end\
 \
 		self.ended:fire(settled)\
@@ -8842,9 +9008,20 @@ function Stack.reflow(self: Fields & Types.Stack, spec: (MotionSpec | string)?):
 		panel.settled = position\
 		panel:moveTo(position)\
 \
-		local size = panel.instance.AbsoluteSize\
+		--// step by the panel's *target* size, not its current one. AbsoluteSize\
+		--// is zero on the frame a panel is added — Roblox has not laid it out\
+		--// yet — and mid-animation while it grows into place, so stepping by it\
+		--// stacks members on top of each other in both cases. `desired` is the\
+		--// settled layout size, so positions are final immediately and the\
+		--// panels animate into them.\
+		local target = panel.desired\
+		local absolute = panel.instance.AbsoluteSize\
 \
-		cursor += (if vertical then size.Y else size.X) + self.gap\
+		if target.X <= 0 and target.Y <= 0 then\
+			target = absolute\
+		end\
+\
+		cursor += (if vertical then target.Y else target.X) + self.gap\
 	end\
 \
 	return self\
@@ -9903,6 +10080,7 @@ function Panel.new(app: Types.App, preset: Types.Preset?): Panel\
 		mounted = false,\
 \
 		backdrop = nil,\
+		hitbox = nil,\
 		attachTarget = nil,\
 		attachSide = \"bottom\",\
 		attachGap = theme.space.xs,\
@@ -9932,6 +10110,7 @@ function Panel.new(app: Types.App, preset: Types.Preset?): Panel\
 		stack = nil,\
 		drag = nil,\
 		shadow = nil,\
+		shadowOn = false,\
 	}\
 \
 	local panel = setmetatable(fields, Panel) :: any\
@@ -9942,7 +10121,7 @@ function Panel.new(app: Types.App, preset: Types.Preset?): Panel\
 	--// through every frame of an animation rather than only at the ends\
 	if panel.shadow then\
 		local function track()\
-			Chrome.track(panel.shadow, root, theme.shadow.spread, theme.shadow.offset)\
+			Chrome.track(panel.shadow, root, theme.shadow.spread, theme.shadow.offset, panel.shadowOn)\
 		end\
 \
 		scope:add(root:GetPropertyChangedSignal(\"Size\"):Connect(track))\
@@ -10147,8 +10326,10 @@ function Panel.setBorder(self: Panel, enabled: boolean): Panel\
 end\
 \
 function Panel.setShadow(self: Panel, enabled: boolean): Panel\
+	self.shadowOn = enabled ~= false\
+\
 	if self.shadow then\
-		self.shadow.Visible = enabled ~= false and self.instance.Visible\
+		self.shadow.Visible = self.shadowOn and self.instance.Visible\
 	end\
 \
 	return self\
@@ -10236,7 +10417,7 @@ function Panel.setScroll(self: Panel, enabled: boolean): Panel\
 end\
 \
 --// behaviour\
-function Panel.setDraggable(self: Panel, enabled: boolean): Panel\
+function Panel.setDraggable(self: Panel, enabled: boolean, options: Drag.Options?): Panel\
 	if not enabled then\
 		if self.drag then\
 			self.drag:destroy()\
@@ -10247,18 +10428,33 @@ function Panel.setDraggable(self: Panel, enabled: boolean): Panel\
 		return self\
 	end\
 \
+	--// a preset already created one, so a later call carrying options has to\
+	--// rebuild rather than return early — otherwise the options are silently\
+	--// dropped and the panel keeps the preset's plain drag\
 	if self.drag then\
-		return self\
+		if not options then\
+			return self\
+		end\
+\
+		self.drag:destroy()\
+\
+		self.drag = nil\
 	end\
 \
 	--// drag by the titlebar when there is one, so content interaction never\
 	--// moves the panel out from under the pointer\
 	local handles = if self.hasTitle then { self.refs.titlebar :: GuiObject } else { self.instance :: GuiObject }\
 \
-	self.drag = Drag.attach(self.app, self.instance, {\
+	local settings: Drag.Options = {\
 		handles = handles,\
 		scope = self.scope,\
-	})\
+	}\
+\
+	for key, value in options or {} do\
+		(settings :: any)[key] = value\
+	end\
+\
+	self.drag = Drag.attach(self.app, self.instance, settings)\
 \
 	local handle = self.drag :: Types.DragHandle\
 \
@@ -10282,6 +10478,50 @@ function Panel.setCloseButton(self: Panel, enabled: boolean): Panel\
 	self.refs.close.Visible = enabled ~= false\
 \
 	return self\
+end\
+\
+--- Covers the panel with a click target.\
+---\
+--- A collapsed console bar is a button: you click it and it opens. The target\
+--- sits above the content, so turning it off is what lets the expanded panel's\
+--- own children take input again.\
+function Panel.setActivatable(self: Panel, enabled: boolean): Panel\
+	if not enabled then\
+		if self.hitbox then\
+			self.hitbox.Visible = false\
+		end\
+\
+		return self\
+	end\
+\
+	if self.hitbox then\
+		self.hitbox.Visible = true\
+\
+		return self\
+	end\
+\
+	local button = Instance.new(\"TextButton\")\
+\
+	button.BackgroundTransparency = 1\
+	button.AutoButtonColor = false\
+	button.Size = UDim2.fromScale(1, 1)\
+	button.Text = \"\"\
+	button.Name = \"Hitbox\"\
+	button.ZIndex = 50\
+	button.Parent = self.instance\
+\
+	self.scope:add(button)\
+	self.scope:add(button.Activated:Connect(function()\
+		self:emit(\"activated\")\
+	end))\
+\
+	self.hitbox = button\
+\
+	return self\
+end\
+\
+function Panel.onActivated(self: Panel, handler: () -> ()): Panel\
+	return self:on(\"activated\", handler)\
 end\
 \
 --- Creates the dimming backdrop a modal sits on.\
@@ -10635,7 +10875,7 @@ function Panel.refreshNow(self: Panel): Panel\
 		Panel.reposition(self)\
 	end\
 \
-	Chrome.track(self.shadow, self.instance, theme.shadow.spread, theme.shadow.offset)\
+	Chrome.track(self.shadow, self.instance, theme.shadow.spread, theme.shadow.offset, self.shadowOn)\
 \
 	if self.stack then\
 		self.stack:reflow()\
@@ -10718,6 +10958,43 @@ function Panel.moveTo(self: Panel, position: UDim2): Panel\
 	end\
 \
 	Motion.animate(self.instance, { Position = position }, self.app.theme:spec(\"layout\"))\
+\
+	return self\
+end\
+\
+--- Briefly lifts the panel's surface, then settles it back.\
+---\
+--- Two specs on purpose: a quick rise and a slower fall. A symmetric flash\
+--- reads as a glitch; asymmetric reads as something being handed to you, which\
+--- is the same shape as every other transition in the library.\
+---\
+--- The rest state is read at call time rather than remembered, so a flash\
+--- landing on a panel whose transparency has since been rethemed settles to\
+--- the new value instead of the old one.\
+function Panel.flash(self: Panel, amount: number?, rise: (Types.MotionSpec | string)?, fall: (Types.MotionSpec | string)?): Panel\
+	local theme = self.app.theme\
+	local rest = self.instance.BackgroundTransparency\
+	local lift = math.clamp(rest - (amount or 0.2), 0, 1)\
+\
+	Motion.stop(self.instance, \"BackgroundTransparency\")\
+\
+	local up = Motion.animate(\
+		self.instance,\
+		{ BackgroundTransparency = lift },\
+		theme:spec(rise or \"press\")\
+	)\
+\
+	up.completed:once(function()\
+		if self.dead then\
+			return\
+		end\
+\
+		Motion.animate(\
+			self.instance,\
+			{ BackgroundTransparency = rest },\
+			theme:spec(fall or \"item\")\
+		)\
+	end)\
 \
 	return self\
 end\
@@ -11241,7 +11518,13 @@ function Chrome.shadow(app: Types.App, scope: Types.Scope): ImageLabel?\
 end\
 \
 --- Glues a shadow to its panel. Called whenever the panel's geometry changes.\
-function Chrome.track(shadow: ImageLabel?, target: GuiObject, spread: number, offset: Vector2)\
+function Chrome.track(\
+	shadow: ImageLabel?,\
+	target: GuiObject,\
+	spread: number,\
+	offset: Vector2,\
+	enabled: boolean?\
+)\
 	if not shadow then\
 		return\
 	end\
@@ -11250,7 +11533,11 @@ function Chrome.track(shadow: ImageLabel?, target: GuiObject, spread: number, of
 	local anchor = target.AnchorPoint\
 \
 	shadow.AnchorPoint = anchor\
-	shadow.Visible = target.Visible\
+\
+	--// `enabled` is the caller's `setShadow`, and it has to be honoured here:\
+	--// track runs on every layout pass, so without it a shadow turned off\
+	--// would switch itself back on the next time the panel resized\
+	shadow.Visible = target.Visible and enabled ~= false\
 \
 	shadow.Size = UDim2.new(\
 		target.Size.X.Scale,\
@@ -11969,7 +12256,13 @@ return {\
 \
 		layout = { stiffness = 190, damping = 24 },\
 		morph = { stiffness = 210, damping = 26 },\
-		drag = { stiffness = 420, damping = 34 },\
+		--// the follow while a pointer is down: stiff and heavily damped, so it\
+		--// trails the cursor without wobbling under it\
+		drag = { stiffness = 620, damping = 42 },\
+		--// the settle after release. Damping is deliberately under the critical\
+		--// value (2 * sqrt(340) is about 37) so it overshoots a little and comes\
+		--// back — that small bounce is what reads as weight\
+		toss = { stiffness = 340, damping = 22 },\
 		reveal = { stiffness = 150, damping = 20 },\
 		snap = { stiffness = 600, damping = 40 },\
 	},\
@@ -12308,6 +12601,9 @@ export type PanelFields = {\
 	stack: Stack?,\
 	drag: DragHandle?,\
 	shadow: ImageLabel?,\
+	--- What `setShadow` was last told. The shadow tracker reads it, so a\
+	--- shadow turned off stays off across layout passes.\
+	shadowOn: boolean,\
 }\
 \
 export type PanelApi<T> = {\
@@ -12319,6 +12615,11 @@ export type PanelApi<T> = {\
 	setAnchor: (self: T, anchor: Anchor, offset: Vector2?) -> T,\
 	setLayer: (self: T, layer: string) -> T,\
 	setRadius: (self: T, radius: number | \"pill\") -> T,\
+	--- Makes the whole panel clickable, for a collapsed bar that expands when\
+	--- you click it. The target sits above the content, so it is turned off\
+	--- automatically while the panel is expanded.\
+	setActivatable: (self: T, enabled: boolean) -> T,\
+	onActivated: (self: T, handler: () -> ()) -> T,\
 	setColor: (self: T, color: Bindable<Color3>) -> T,\
 	setTransparency: (self: T, transparency: Bindable<number>) -> T,\
 	setBorder: (self: T, enabled: boolean) -> T,\
@@ -12337,7 +12638,10 @@ export type PanelApi<T> = {\
 	setScroll: (self: T, enabled: boolean) -> T,\
 \
 	--// behaviour\
-	setDraggable: (self: T, enabled: boolean) -> T,\
+	--- `options` forwards to `Input/Drag` — `smooth` for a springy follow with\
+	--- a little overshoot on release, `axis` to lock one direction, `bounds`\
+	--- to allow leaving the viewport.\
+	setDraggable: (self: T, enabled: boolean, options: { [string]: any }?) -> T,\
 	setDismissable: (self: T, enabled: boolean) -> T,\
 	setCloseButton: (self: T, enabled: boolean) -> T,\
 	attachTo: (self: T, target: GuiObject | Element | Panel, side: Edge?, gap: number?) -> T,\
@@ -12385,6 +12689,9 @@ export type PanelApi<T> = {\
 	center: (self: T) -> T,\
 	moveTo: (self: T, position: UDim2) -> T,\
 	front: (self: T) -> T,\
+	--- A brief lift of the surface and a slower settle back — for marking\
+	--- which panel just took focus.\
+	flash: (self: T, amount: number?, rise: (MotionSpec | string)?, fall: (MotionSpec | string)?) -> T,\
 }\
 \
 export type Panel = NodeFields & PanelFields & NodeApi<Panel> & ElementApi<Panel> & PanelApi<Panel>\
@@ -12453,6 +12760,14 @@ export type Field = NodeFields & ElementFields & NodeApi<Field> & ElementApi<Fie
 	setHint: (self: Field, hint: Bindable<string>) -> Field,\
 	setFont: (self: Field, font: Enum.Font) -> Field,\
 	setTextSize: (self: Field, size: number) -> Field,\
+	--- A trailing glyph on the right edge — the console's submit arrow.\
+	setTrailingIcon: (self: Field, image: Bindable<string>) -> Field,\
+	--- Recolours the parts independently: `text`, `placeholder`, `prefix`,\
+	--- `hint`, `icon`. Omitted keys keep their current colour.\
+	setColors: (self: Field, colors: { [string]: Color3 }) -> Field,\
+	setRadius: (self: Field, radius: number | \"pill\") -> Field,\
+	setSurface: (self: Field, color: Color3, transparency: number) -> Field,\
+	setBorder: (self: Field, enabled: boolean) -> Field,\
 	setMultiline: (self: Field, multiline: boolean) -> Field,\
 	setMasked: (self: Field, masked: boolean) -> Field,\
 	setMaxLength: (self: Field, length: number) -> Field,\
@@ -12613,6 +12928,8 @@ export type Suggest = NodeFields & ElementFields & NodeApi<Suggest> & ElementApi
 	setLimit: (self: Suggest, limit: number) -> Suggest,\
 	setMatcher: (self: Suggest, matcher: (string, string) -> (boolean, number)) -> Suggest,\
 	attach: (self: Suggest, field: Field) -> Suggest,\
+	--- Point at a field without taking over its filtering.\
+	setField: (self: Suggest, field: Field) -> Suggest,\
 \
 	onAccepted: (self: Suggest, handler: (Option) -> ()) -> Suggest,\
 	onHighlighted: (self: Suggest, handler: (Option?) -> ()) -> Suggest,\
