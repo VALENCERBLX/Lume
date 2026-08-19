@@ -103,8 +103,8 @@ below.
 ## Elements
 
 `label` `icon` `button` `field` `toggle` `slider` `select` `list` `divider`
-`spacer` `group` `progress` `tabs` `chips` `suggest` `menu` `menuBar` `badge`
-`scroll` `keybind`
+`spacer` `group` `progress` `tabs` `chips` `suggest` `menu` `menuBar`
+`colorPicker` `badge` `scroll` `keybind`
 
 ```lua
 panel:label("Wrapped body copy"):setWrapped(true):setMuted(true)
@@ -123,6 +123,17 @@ end)
 
 A menu bar shares one popover across every title, which is what lets the
 pointer cross the strip and switch menus without a click.
+
+```lua
+panel:colorPicker("Trail colour")
+    :setValue(Color3.fromRGB(126, 170, 255))
+    :onChanged(preview)     -- every pixel of the drag
+    :onCommitted(save)      -- once, on release
+```
+
+The picker holds **hue, saturation and value**, not a `Color3`. Drag into the
+black corner of an orange square and RGB has thrown the orange away; HSV means
+the square is still orange when you drag back out.
 
 Use a `group` for a row inside a column, with a flexible spacer to push things
 apart:
