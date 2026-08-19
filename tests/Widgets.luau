@@ -519,10 +519,18 @@ end
 do
 	local spark = panel:sparkline({ 1, 4, 2, 8, 5 })
 
-	spark.instance.AbsoluteSize = Shim.Vector2.new(100, 28)
-	spark:setPoints({ 1, 4, 2, 8, 5 })
-
+	--// no AbsoluteSize is set on purpose: Roblox has not laid the element out
+	--// on the frame it is built, and a line drawn from AbsoluteSize came out as
+	--// a row of one-pixel stubs and stayed that way, because nothing rebuilt it
+	panel:refreshNow()
 	Shim.step()
+
+	check("segments are drawn at a real length", spark.segments[1].Size.X.Offset > 4, `{spark.segments[1].Size.X.Offset}`)
+	check("and the element knows the size it was given", spark.plot.X > 4, `{spark.plot.X}`)
+
+	--// a rising step and a falling one lean opposite ways
+	check("the line follows the data", spark.segments[1].Rotation < 0 and spark.segments[2].Rotation > 0,
+		`{spark.segments[1].Rotation} / {spark.segments[2].Rotation}`)
 
 	check("a segment between each pair", #spark.segments == 4, `{#spark.segments}`)
 	check("the last point is readable", spark:last() == 5, tostring(spark:last()))
