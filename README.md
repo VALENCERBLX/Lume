@@ -103,8 +103,8 @@ below.
 ## Elements
 
 `label` `icon` `button` `field` `toggle` `slider` `select` `list` `divider`
-`spacer` `group` `progress` `tabs` `chips` `suggest` `menu` `badge` `scroll`
-`keybind`
+`spacer` `group` `progress` `tabs` `chips` `suggest` `menu` `menuBar` `badge`
+`scroll` `keybind`
 
 ```lua
 panel:label("Wrapped body copy"):setWrapped(true):setMuted(true)
@@ -112,7 +112,17 @@ panel:toggle("Wireframe"):setDescription("Draw collision volumes"):setValue(true
 panel:slider("Opacity"):setRange(0, 100):setStep(1):onCommitted(save)
 panel:select("Mode"):setOptions({ "Solid", "Wireframe" }):setSearchable(true)
 panel:tabs():setTabs({ "General", "Advanced" }):setVariant("underline")
+
+panel:menuBar({
+    { text = "File", items = { { id = "new", text = "New", shortcut = "Ctrl+N" } } },
+    { text = "Edit", items = { { id = "undo", text = "Undo" } } },
+}):onPicked(function(item, from)
+    print(from, item.id)
+end)
 ```
+
+A menu bar shares one popover across every title, which is what lets the
+pointer cross the strip and switch menus without a click.
 
 Use a `group` for a row inside a column, with a flexible spacer to push things
 apart:
@@ -248,6 +258,20 @@ with the bottom edge held.
 `examples/CommandBar.client.luau` is a smaller take on the same idea, and
 `examples/Inspector.client.luau` is a settings window with tabs, a modal and
 stacked toasts.
+
+## Tests
+
+```sh
+lune run scripts/test
+```
+
+`tests/Shim.luau` is a small Roblox stand-in — instances with a real tree,
+events, the datatypes Lume touches, and a clock you step by hand — so the suites
+and the shipped examples **run** rather than merely compiling. `Shadow.luau` is
+the one worth knowing about: it constructs every element and fails if any field
+is named after a method it inherits. An instance field shadows its metatable, so
+a Toggle with a boolean field called `on` breaks `toggle:on("changed", fn)` from
+three call sites away.
 
 ## Install
 
