@@ -20,6 +20,7 @@ local settings = {
 	opacity = Lume.value(80),
 	mode = Lume.value("solid"),
 	selection = Lume.value(0),
+	grid = Lume.value(4),
 }
 
 local summary = Lume.computed(function()
@@ -78,6 +79,19 @@ window:select("Render mode")
 		if id then
 			settings.mode:set(id)
 		end
+	end)
+
+--// a slider is wrong for a short range where every value matters: dragging to
+--// exactly 3 is fiddly, pressing plus three times is not
+window:stepper("Grid size")
+	:setRange(1, 16)
+	:setStep(1)
+	:setValue(settings.grid)
+	:setFormat(function(value)
+		return `{value} studs`
+	end)
+	:onCommitted(function(value)
+		settings.grid:set(value)
 	end)
 
 window:keybind("Toggle inspector"):setValue(Enum.KeyCode.F2)

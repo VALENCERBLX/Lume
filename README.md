@@ -102,8 +102,8 @@ below.
 
 ## Elements
 
-`label` `icon` `button` `field` `toggle` `slider` `select` `list` `divider`
-`spacer` `group` `progress` `tabs` `chips` `suggest` `menu` `menuBar`
+`label` `icon` `button` `field` `toggle` `slider` `stepper` `select` `list`
+`divider` `spacer` `group` `progress` `tabs` `chips` `suggest` `menu` `menuBar`
 `colorPicker` `badge` `scroll` `keybind`
 
 ```lua
@@ -134,6 +134,15 @@ panel:colorPicker("Trail colour")
 The picker holds **hue, saturation and value**, not a `Color3`. Drag into the
 black corner of an orange square and RGB has thrown the orange away; HSV means
 the square is still orange when you drag back out.
+
+```lua
+panel:stepper("Grid size"):setRange(1, 16):setStep(1):onCommitted(save)
+panel:stepper("Hour"):setRange(0, 23):setWrap(true)
+```
+
+A stepper is the slider's sibling for short ranges where every value matters, or
+ranges with no meaningful end. Holding a button repeats and accelerates, and the
+whole hold is **one** `committed`, not forty.
 
 Use a `group` for a row inside a column, with a flexible spacer to push things
 apart:
