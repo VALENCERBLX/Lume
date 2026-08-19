@@ -543,6 +543,120 @@ do
 	check("one point draws nothing", #spark.segments == 0, `{#spark.segments}`)
 end
 
+--// graph ------------------------------------------------------------------------
+do
+	local graph = panel:graph("Frame time")
+
+	graph:setUnit("ms")
+	graph:setWindow(5)
+	graph:setThresholds(16, 33)
+	graph:setOptimum("low")
+
+	Shim.step()
+
+	graph:push(8)
+	graph:push(12)
+
+	check("pushing adds samples", #graph.samples == 2, `{#graph.samples}`)
+	check("a bar per sample", graph.bars[2].Visible == true)
+	check("the readout carries the unit", graph.refs.readout.Text == "12ms", graph.refs.readout.Text)
+	check("the last sample is readable", graph:last() == 12)
+	check("and the mean", graph:average() == 10, `{graph:average()}`)
+
+	--// thresholds are what makes a debug graph worth looking at: a number is
+	--// only interesting against the number you would accept
+	check("under the warning is fine", Lume.Elements.Graph.grade(graph, 8) == "ok")
+	check("over it warns", Lume.Elements.Graph.grade(graph, 20) == "warn")
+	check("over the failure line fails", Lume.Elements.Graph.grade(graph, 40) == "fail")
+
+	graph:push(40)
+
+	check("a failing bar turns red", graph.bars[3].BackgroundColor3 == app.theme.color.danger)
+	check("and so does the readout", graph.refs.readout.TextColor3 == app.theme.color.danger)
+
+	--// the same graph pointed the other way: for frames per second, low is bad
+	graph:setOptimum("high")
+
+	check("optimum high flips it", Lume.Elements.Graph.grade(graph, 8) == "fail", Lume.Elements.Graph.grade(graph, 8))
+
+	graph:setOptimum("low")
+
+	--// the window is a window
+	graph:push(1)
+	graph:push(2)
+	graph:push(3)
+
+	check("the window drops the oldest", #graph.samples == 5, `{#graph.samples}`)
+	check("and keeps the newest", graph:last() == 3)
+
+	--// the threshold lines have to be inside the scale, or a quiet graph draws
+	--// its warning line off the top
+	local low, high = Lume.Elements.Graph.bounds(graph)
+
+	check("the scale swallows the thresholds", high >= 33 and low <= 1, `{low}..{high}`)
+
+	graph:setRange(0, 50)
+
+	local fixedLow, fixedHigh = Lume.Elements.Graph.bounds(graph)
+
+	check("a fixed range wins", fixedLow == 0 and fixedHigh == 50, `{fixedLow}..{fixedHigh}`)
+
+	graph:clear()
+
+	check("clearing empties it", #graph.samples == 0)
+	check("and hides the bars", graph.bars[1].Visible == false)
+end
+
+--// growing inside a row ----------------------------------------------------------
+do
+	--// `grow` absorbs leftover space along the *parent's* main axis. Group and
+	--// Accordion wrote their own commit and only implemented the vertical
+	--// case, so a growing child of a horizontal row took its share of the
+	--// leftover width and applied it to its height — a three-line readout came
+	--// out three hundred pixels tall and sat on top of everything under it.
+	local row = panel:group("horizontal")
+
+	row:setFill(true)
+	row:setGap(8)
+
+	row:avatar(1):setDiameter(28)
+
+	local lines = row:group("vertical")
+
+	lines:setGrow(true)
+	lines:setGap(2)
+
+	lines:label("team: red")
+	lines:label("grid: 4 studs")
+	lines:label("hour: 12:00")
+
+	panel:refreshNow()
+	Shim.step()
+
+	local natural = lines:measure(Shim.Vector2.new(420, 600))
+
+	check("a grown child of a row keeps its own height", lines.instance.Size.Y.Offset == natural.Y, `{lines.instance.Size.Y.Offset} vs {natural.Y}`)
+	check("and takes the leftover width instead", lines.instance.Size.X.Offset > natural.X, `{lines.instance.Size.X.Offset} vs {natural.X}`)
+	check("so it fits the row it is in", lines.instance.Size.Y.Offset <= row.instance.Size.Y.Offset)
+
+	--// the same rule for an accordion, which copied the same commit
+	local nested = panel:group("horizontal")
+
+	nested:setFill(true)
+
+	local folds = nested:accordion()
+
+	folds:setGrow(true)
+	folds:section("One"):label("a")
+
+	panel:refreshNow()
+	Shim.step()
+
+	local foldsNatural = folds:measure(Shim.Vector2.new(420, 600))
+
+	check("an accordion in a row behaves the same", folds.instance.Size.Y.Offset == foldsNatural.Y, `{folds.instance.Size.Y.Offset} vs {foldsNatural.Y}`)
+end
+
 print(`Widgets: {passed} passed, {failed} failed`)
 
 if failed > 0 then

@@ -106,7 +106,7 @@ below.
 `radio` `chips` `colorPicker` `rating` `keybind`
 
 **Display** — `label` `icon` `avatar` `badge` `progress` `meter` `spinner`
-`sparkline` `list` `table` `tree`
+`sparkline` `graph` `list` `table` `tree`
 
 **Structure** — `group` `accordion` `tabs` `divider` `spacer` `scroll`
 
@@ -185,6 +185,19 @@ panel:table():setColumns({ { key = "name", weight = 2 }, { key = "score" } })
 panel:tree():setNodes(nodes)
 panel:avatar(player.UserId):setName(player.DisplayName):setStatus("online")
 ```
+
+```lua
+local fps = panel:graph("Frame time"):setUnit("ms"):setThresholds(16, 33):setOptimum("low")
+
+RunService.RenderStepped:Connect(function(delta)
+    fps:push(delta * 1000)
+end)
+```
+
+A **graph** is a live series that colours itself against a warning and a failure
+line — the idea is borrowed from [Lori](https://github.com/KYRORBLX/Lori), and
+it is the thing that makes a debug graph worth looking at: a number is only
+interesting relative to the number you would accept.
 
 A **meter** is a level, not a task: its colour is the point, and `optimum`
 decides which direction is the bad one — health and disk usage are the same
