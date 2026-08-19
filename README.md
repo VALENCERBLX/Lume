@@ -102,9 +102,15 @@ below.
 
 ## Elements
 
-`label` `icon` `button` `field` `toggle` `slider` `stepper` `select` `list`
-`divider` `spacer` `group` `accordion` `progress` `tabs` `chips` `suggest`
-`menu` `menuBar` `colorPicker` `badge` `scroll` `keybind`
+**Input** — `field` `toggle` `slider` `stepper` `scrubber` `vector` `select`
+`radio` `chips` `colorPicker` `rating` `keybind`
+
+**Display** — `label` `icon` `avatar` `badge` `progress` `meter` `spinner`
+`sparkline` `list` `table` `tree`
+
+**Structure** — `group` `accordion` `tabs` `divider` `spacer` `scroll`
+
+**Navigation** — `menu` `menuBar` `breadcrumb` `pagination` `suggest`
 
 ```lua
 panel:label("Wrapped body copy"):setWrapped(true):setMuted(true)
@@ -154,6 +160,37 @@ sections:section("Colour"):colorPicker("Highlight")
 A section's body is a **group**, so it hosts what a panel hosts. Folding one
 hides its body and lets the panel morph — the same spring every other content
 change uses, rather than a second animation system fighting the first.
+
+### Numbers, four ways
+
+They are not interchangeable, and the difference is what the range is like:
+
+```lua
+panel:slider("Opacity"):setRange(0, 100)          -- a range you can see
+panel:stepper("Grid"):setRange(1, 16)             -- short, every value matters
+panel:scrubber("Zoom"):setStep(0.05)              -- no range at all — drag it
+panel:vector("Position", 3):setStep(0.5)          -- three numbers, one meaning
+```
+
+A scrubber is the one a slider cannot replace: a camera's Z has no meaningful
+minimum, so there is no rail to draw and no fraction to fill — but the gesture
+is relative, so dragging still works.
+
+### Reading rather than editing
+
+```lua
+panel:meter("Memory"):setRange(0, 100):setBands(50, 80):setOptimum("low")
+panel:sparkline({ 12, 18, 9, 24, 31 }):setHeight(28)
+panel:table():setColumns({ { key = "name", weight = 2 }, { key = "score" } })
+panel:tree():setNodes(nodes)
+panel:avatar(player.UserId):setName(player.DisplayName):setStatus("online")
+```
+
+A **meter** is a level, not a task: its colour is the point, and `optimum`
+decides which direction is the bad one — health and disk usage are the same
+widget pointed opposite ways. A **table**'s column widths are weights rather
+than pixels. A **tree** flattens to the rows currently visible, so a closed
+folder with ten thousand children costs nothing.
 
 Use a `group` for a row inside a column, with a flexible spacer to push things
 apart:
