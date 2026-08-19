@@ -103,8 +103,8 @@ below.
 ## Elements
 
 `label` `icon` `button` `field` `toggle` `slider` `stepper` `select` `list`
-`divider` `spacer` `group` `progress` `tabs` `chips` `suggest` `menu` `menuBar`
-`colorPicker` `badge` `scroll` `keybind`
+`divider` `spacer` `group` `accordion` `progress` `tabs` `chips` `suggest`
+`menu` `menuBar` `colorPicker` `badge` `scroll` `keybind`
 
 ```lua
 panel:label("Wrapped body copy"):setWrapped(true):setMuted(true)
@@ -143,6 +143,17 @@ panel:stepper("Hour"):setRange(0, 23):setWrap(true)
 A stepper is the slider's sibling for short ranges where every value matters, or
 ranges with no meaningful end. Holding a button repeats and accelerates, and the
 whole hold is **one** `committed`, not forty.
+
+```lua
+local sections = panel:accordion():setExclusive(true)
+
+sections:section("Display"):slider("Opacity"):setRange(0, 100)
+sections:section("Colour"):colorPicker("Highlight")
+```
+
+A section's body is a **group**, so it hosts what a panel hosts. Folding one
+hides its body and lets the panel morph — the same spring every other content
+change uses, rather than a second animation system fighting the first.
 
 Use a `group` for a row inside a column, with a flexible spacer to push things
 apart:
